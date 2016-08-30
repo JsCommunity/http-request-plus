@@ -1,6 +1,6 @@
 # http-request-plus [![Build Status](https://travis-ci.org/JsCommunity/http-request-plus.png?branch=master)](https://travis-ci.org/JsCommunity/http-request-plus)
 
-> ${pkg.description}
+> Small wrapper around {http,https}.request()
 
 Features:
 

@@ -3,8 +3,12 @@
   "name": "http-request-plus",
   "version": "0.0.0",
   "license": "ISC",
-  "description": "",
-  "keywords": [],
+  "description": "Small wrapper around {http,https}.request()",
+  "keywords": [
+    "http",
+    "https",
+    "request"
+  ],
   "homepage": "https://github.com/JsCommunity/http-request-plus",
   "bugs": "https://github.com/JsCommunity/http-request-plus/issues",
   "repository": {

@@ -1,6 +1,4 @@
-import assign from 'lodash/assign'
-import isString from 'lodash/isString'
-import startsWith from 'lodash/startsWith'
+import { assign, isString, startsWith } from 'lodash'
 import { parse as parseUrl } from 'url'
 import { request as httpRequest } from 'http'
 import { request as httpsRequest } from 'https'

@@ -34,7 +34,7 @@ import httpRequestPlus from 'http-request-plus'
 (async () => {
   try {
     console.log(
-      await httpRequestPlus('http://example.org').readAll()
+      await httpRequestPlus('http://example.org').readAll('utf8')
     )
   } catch (error) {
     console.error('An error as occured', error)
@@ -47,7 +47,7 @@ ES5:
 ```js
 var httpRequestPlus = require('http-request-plus').default
 
-httpRequestPlus('http://example.org').readAll()
+httpRequestPlus('http://example.org').readAll('utf8')
   .then(body => {
     console.log(body)
   })

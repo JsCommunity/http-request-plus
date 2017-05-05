@@ -1,10 +1,34 @@
-import { assign, isString, startsWith } from 'lodash'
-import { parse as parseUrl } from 'url'
+import isRedirect from 'is-redirect'
+import { assign, startsWith } from 'lodash'
+import { cancelable } from 'promise-toolbox'
+import { format as formatUrl, parse as parseUrl } from 'url'
 import { request as httpRequest } from 'http'
 import { request as httpsRequest } from 'https'
 import { stringify as formatQueryString } from 'querystring'
 
 // -------------------------------------------------------------------
+
+// parse a URL but only returns:
+// - defined parts
+// - accepted by http.request
+const URL_SAFE_KEYS = 'auth hostname path port protocol'.split(' ')
+const URL_SAFE_KEYS_LEN = URL_SAFE_KEYS.length
+const parseUrlSafe = url => {
+  const parsedUrl = parseUrl(url)
+  const safeParsedUrl = {}
+
+  for (let i = 0; i < URL_SAFE_KEYS_LEN; ++i) {
+    const key = URL_SAFE_KEYS[i]
+    const value = parsedUrl[key]
+    if (value !== null) {
+      safeParsedUrl[key] = value
+    }
+  }
+
+  return safeParsedUrl
+}
+
+const isString = value => typeof value === 'string'
 
 const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
   const chunks = []
@@ -40,82 +64,98 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
 
 // -------------------------------------------------------------------
 
-const httpRequestPlus = (...args) => {
-  let req
+let doRequest = (cancelToken, url, opts) => {
+  const {
+    body,
+    headers: { ...headers } = {},
+    query,
+    ...rest
+  } = opts
 
-  const pResponse = new Promise((resolve, reject) => {
-    const opts = {}
-    for (let i = 0, length = args.length; i < length; ++i) {
-      const arg = args[i]
-      assign(opts, isString(arg) ? parseUrl(arg) : arg)
+  if (headers['content-length'] == null && body != null) {
+    let tmp
+    if (isString(body)) {
+      headers['content-length'] = Buffer.byteLength(body)
+    } else if (
+      (
+        (tmp = body.headers) != null &&
+        (tmp = tmp['content-length']) != null
+      ) ||
+      (tmp = body.length) != null
+    ) {
+      headers['content-length'] = tmp
     }
+  }
 
-    const {
-      body,
-      headers: { ...headers } = {},
-      protocol,
-      query,
-      ...rest
-    } = opts
+  if (query !== undefined) {
+    rest.path = `${rest.pathname || rest.path || '/'}?${
+      isString(query)
+        ? query
+        : formatQueryString(query)
+    }`
+  }
 
-    if (headers['content-length'] == null && body != null) {
-      let tmp
-      if (isString(body)) {
-        headers['content-length'] = Buffer.byteLength(body)
-      } else if (
-        (
-          (tmp = body.headers) &&
-          (tmp = tmp['content-length']) != null
-        ) ||
-        (tmp = body.length) != null
-      ) {
-        headers['content-length'] = tmp
-      }
-    }
+  assign(rest, url)
+  rest.headers = url
 
-    if (query) {
-      rest.path = `${rest.pathname || rest.path || '/'}?${
-        isString(query)
-          ? query
-          : formatQueryString(query)
-      }`
-    }
+  const { protocol } = rest
 
-    req = (
-      protocol && startsWith(protocol.toLowerCase(), 'https')
-        ? httpsRequest
-        : httpRequest
-    )({
-      ...rest,
-      headers
-    })
+  const req = (
+    protocol !== null && startsWith(protocol.toLowerCase(), 'https')
+      ? httpsRequest
+      : httpRequest
+  )(rest)
+  cancelToken.promise.then(() => {
+    req.abort()
+  })
 
-    if (body) {
-      if (typeof body.pipe === 'function') {
-        body.pipe(req)
-      } else {
-        req.end(body)
-      }
+  if (body) {
+    if (typeof body.pipe === 'function') {
+      body.pipe(req)
     } else {
-      req.end()
+      req.end(body)
     }
-    req.on('error', reject)
-    req.once('response', resolve)
-  }).then(response => {
-    response.cancel = () => {
-      req.abort()
-    }
-    response.readAll = encoding => readAllStream(response, encoding)
+  } else {
+    req.end()
+  }
 
-    const length = response.headers['content-length']
-    if (length) {
-      response.length = length
+  return new Promise((resolve, reject) => {
+    req.once('error', reject)
+    req.once('response', response => {
+      response.readAll = encoding => readAllStream(response, encoding)
+
+      const length = response.headers['content-length']
+      if (length !== undefined) {
+        response.length = +length
+      }
+
+      resolve(response)
+    })
+  })
+}
+
+// handles redirects
+doRequest = (doRequest => (cancelToken, url, opts) =>
+  doRequest(cancelToken, url, opts).then(response => {
+    const { statusCode } = response
+    if (isRedirect(statusCode)) {
+      const { location } = response.headers
+      if (location !== undefined) {
+        return doRequest(cancelToken, url.resolveObject(location), opts)
+      }
     }
 
-    const code = response.statusCode
-    if (code < 200 || code >= 300) {
+    return response
+  })
+)(doRequest)
+
+// throws if status code is not 2xx
+doRequest = (doRequest => (cancelToken, url, opts) =>
+  doRequest(cancelToken, url, opts).then(response => {
+    const { statusCode } = response
+    if ((statusCode / 100 | 0) !== 2) {
       const error = new Error(response.statusMessage)
-      error.code = code
+      error.code = statusCode
       Object.defineProperty(error, 'response', {
         configurable: true,
         value: response,
@@ -127,14 +167,25 @@ const httpRequestPlus = (...args) => {
 
     return response
   })
+)(doRequest)
 
-  pResponse.cancel = () => {
-    req.emit('error', new Error('HTTP request canceled!'))
-    req.abort()
+export default cancelable(function (cancelToken) {
+  const opts = {
+    hostname: 'localhost',
+    path: '/',
+    protocol: 'http:'
   }
+  for (let i = 1, length = arguments.length; i < length; ++i) {
+    const arg = arguments[i]
+    assign(opts, isString(arg) ? parseUrlSafe(arg) : arg)
+  }
+
+  // http.request only supports path and url.format only pathname
+  opts.pathname = opts.path
+  const url = parseUrl(formatUrl(opts))
+
+  const pResponse = doRequest(cancelToken, url, opts)
   pResponse.readAll = encoding => pResponse.then(response => response.readAll(encoding))
-  pResponse.request = req
 
   return pResponse
-}
-export { httpRequestPlus as default }
+})

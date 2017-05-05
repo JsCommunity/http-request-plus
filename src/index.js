@@ -169,7 +169,7 @@ doRequest = (doRequest => (cancelToken, url, opts) =>
   })
 )(doRequest)
 
-export default cancelable(function (cancelToken) {
+const httpRequestPlus = cancelable(function (cancelToken) {
   const opts = {
     hostname: 'localhost',
     path: '/',
@@ -188,4 +188,11 @@ export default cancelable(function (cancelToken) {
   pResponse.readAll = encoding => pResponse.then(response => response.readAll(encoding))
 
   return pResponse
+})
+export { httpRequestPlus as default }
+
+// helpers for HTTP methods (expect GET because it's the default)
+'delete head patch post put'.split(' ').forEach(method => {
+  httpRequestPlus[method] = (...args) =>
+    httpRequestPlus(...args, { method })
 })

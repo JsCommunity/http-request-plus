@@ -96,7 +96,7 @@ let doRequest = (cancelToken, url, opts) => {
   }
 
   assign(rest, url)
-  rest.headers = url
+  rest.headers = headers
 
   const { protocol } = rest
 

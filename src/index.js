@@ -109,7 +109,7 @@ let doRequest = (cancelToken, url, opts) => {
     req.abort()
   })
 
-  if (body) {
+  if (body !== undefined) {
     if (typeof body.pipe === 'function') {
       body.pipe(req)
     } else {

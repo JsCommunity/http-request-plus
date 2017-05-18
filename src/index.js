@@ -85,7 +85,7 @@ let doRequest = (cancelToken, url, opts) => {
   }
 
   if (query !== undefined) {
-    rest.path = `${rest.pathname || rest.path || '/'}?${
+    rest.path = `${rest.path}?${
       isString(query)
         ? query
         : formatQueryString(query)

@@ -8,24 +8,21 @@ import { stringify as formatQueryString } from 'querystring'
 
 // -------------------------------------------------------------------
 
-// parse a URL but only returns:
-// - defined parts
+// assign safe URL parts to an object:
+// - defined
 // - accepted by http.request
 const URL_SAFE_KEYS = 'auth hostname path port protocol'.split(' ')
 const URL_SAFE_KEYS_LEN = URL_SAFE_KEYS.length
-const parseUrlSafe = url => {
-  const parsedUrl = parseUrl(url)
-  const safeParsedUrl = {}
-
+const assignSafeUrlParts = (target, url) => {
   for (let i = 0; i < URL_SAFE_KEYS_LEN; ++i) {
     const key = URL_SAFE_KEYS[i]
-    const value = parsedUrl[key]
+    const value = url[key]
     if (value !== null) {
-      safeParsedUrl[key] = value
+      target[key] = value
     }
   }
 
-  return safeParsedUrl
+  return target
 }
 
 const isString = value => typeof value === 'string'
@@ -95,7 +92,7 @@ let doRequest = (cancelToken, url, opts) => {
     }`
   }
 
-  assign(rest, url)
+  assignSafeUrlParts(rest, url)
   rest.headers = headers
 
   const { protocol } = rest
@@ -177,12 +174,15 @@ const httpRequestPlus = cancelable(function (cancelToken) {
   }
   for (let i = 1, length = arguments.length; i < length; ++i) {
     const arg = arguments[i]
-    assign(opts, isString(arg) ? parseUrlSafe(arg) : arg)
+    if (isString(arg)) {
+      assignSafeUrlParts(opts, parseUrl(arg))
+    } else {
+      assign(opts, arg)
+    }
   }
 
   // http.request only supports path and url.format only pathname
-  opts.pathname = opts.path
-  const url = parseUrl(formatUrl(opts))
+  const url = parseUrl(formatUrl(opts) + opts.path)
 
   const pResponse = doRequest(cancelToken, url, opts)
   pResponse.readAll = encoding => pResponse.then(response => response.readAll(encoding))

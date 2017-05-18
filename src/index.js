@@ -65,7 +65,6 @@ let doRequest = (cancelToken, url, opts) => {
   const {
     body,
     headers: { ...headers } = {},
-    query,
     ...rest
   } = opts
 
@@ -82,14 +81,6 @@ let doRequest = (cancelToken, url, opts) => {
     ) {
       headers['content-length'] = tmp
     }
-  }
-
-  if (query !== undefined) {
-    rest.path = `${rest.path}?${
-      isString(query)
-        ? query
-        : formatQueryString(query)
-    }`
   }
 
   assignSafeUrlParts(rest, url)
@@ -179,6 +170,16 @@ const httpRequestPlus = cancelable(function (cancelToken) {
     } else {
       assign(opts, arg)
     }
+  }
+
+  const { query } = opts
+  if (query !== undefined) {
+    delete opts.query
+    opts.path = `${opts.path}?${
+      isString(query)
+        ? query
+        : formatQueryString(query)
+    }`
   }
 
   // http.request only supports path and url.format only pathname

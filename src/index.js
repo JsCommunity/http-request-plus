@@ -64,9 +64,8 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
 let doRequest = (cancelToken, url, { body, ...opts }) => {
   assignSafeUrlParts(opts, url)
 
-  const { protocol } = opts
   const req = (
-    protocol !== null && startsWith(protocol.toLowerCase(), 'https')
+    startsWith(url.protocol.toLowerCase(), 'https')
       ? httpsRequest
       : httpRequest
   )(opts)

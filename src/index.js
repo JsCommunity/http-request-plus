@@ -61,38 +61,15 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
 
 // -------------------------------------------------------------------
 
-let doRequest = (cancelToken, url, opts) => {
-  const {
-    body,
-    headers: { ...headers } = {},
-    ...rest
-  } = opts
+let doRequest = (cancelToken, url, { body, ...opts }) => {
+  assignSafeUrlParts(opts, url)
 
-  if (headers['content-length'] == null && body != null) {
-    let tmp
-    if (isString(body)) {
-      headers['content-length'] = Buffer.byteLength(body)
-    } else if (
-      (
-        (tmp = body.headers) != null &&
-        (tmp = tmp['content-length']) != null
-      ) ||
-      (tmp = body.length) != null
-    ) {
-      headers['content-length'] = tmp
-    }
-  }
-
-  assignSafeUrlParts(rest, url)
-  rest.headers = headers
-
-  const { protocol } = rest
-
+  const { protocol } = opts
   const req = (
     protocol !== null && startsWith(protocol.toLowerCase(), 'https')
       ? httpsRequest
       : httpRequest
-  )(rest)
+  )(opts)
   cancelToken.promise.then(() => {
     req.abort()
   })
@@ -169,6 +146,25 @@ const httpRequestPlus = cancelable(function (cancelToken) {
       assignSafeUrlParts(opts, parseUrl(arg))
     } else {
       assign(opts, arg)
+    }
+  }
+
+  const { body } = opts
+  if (body !== undefined) {
+    const headers = opts.headers = { ...opts.headers }
+    if (headers['content-length'] == null) {
+      let tmp
+      if (isString(body)) {
+        headers['content-length'] = Buffer.byteLength(body)
+      } else if (
+        (
+          (tmp = body.headers) != null &&
+          (tmp = tmp['content-length']) != null
+        ) ||
+        (tmp = body.length) != null
+      ) {
+        headers['content-length'] = tmp
+      }
     }
   }
 

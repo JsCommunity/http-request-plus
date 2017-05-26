@@ -30,18 +30,18 @@
   "dependencies": {
     "is-redirect": "^1.0.0",
     "lodash": "^4.17.4",
-    "promise-toolbox": "^0.8.2"
+    "promise-toolbox": "^0.9.1"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
     "babel-eslint": "^7.2.3",
     "babel-plugin-lodash": "^3.2.11",
-    "babel-preset-env": "^1.4.0",
+    "babel-preset-env": "^1.5.1",
     "babel-preset-stage-3": "^6.24.1",
-    "cross-env": "^4.0.0",
+    "cross-env": "^5.0.0",
     "dependency-check": "^2.8.0",
     "husky": "^0.13.3",
-    "jest": "^19.0.2",
+    "jest": "^20.0.4",
     "rimraf": "^2.6.1",
     "standard": "^10.0.2"
   },

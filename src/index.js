@@ -86,6 +86,10 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
   return new Promise((resolve, reject) => {
     req.once('error', reject)
     req.once('response', response => {
+      response.cancel = () => {
+        req.abort()
+      }
+
       response.readAll = encoding => readAllStream(response, encoding)
 
       const length = response.headers['content-length']

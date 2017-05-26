@@ -1,6 +1,6 @@
 {
   "name": "http-request-plus",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "ISC",
   "description": "Small wrapper around {http,https}.request()",
   "keywords": [

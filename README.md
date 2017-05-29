@@ -56,6 +56,24 @@ httpRequestPlus('http://example.org').readAll('utf8')
   })
 ```
 
+### HTTP method helpers
+
+```js
+httpRequestPlus.delete()
+httpRequestPlus.head()
+httpRequestPlus.patch()
+httpRequestPlus.post()
+httpRequestPlus.put()
+```
+
+### `httpRequestPlus.extend(opts)`
+
+```js
+const githubRequest = httpRequestPlus.extend('https://github.com')
+
+githubRequest.post('/api')
+```
+
 ### `httpRequestPlus(options...)` → `Promise<response>`
 
 ### `Promise<response>.cancel()`

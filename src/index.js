@@ -1,12 +1,43 @@
 import isRedirect from 'is-redirect'
 import { assign, startsWith } from 'lodash'
-import { cancelable } from 'promise-toolbox'
+import { cancelable, CancelToken } from 'promise-toolbox'
 import { format as formatUrl, parse as parseUrl } from 'url'
 import { request as httpRequest } from 'http'
 import { request as httpsRequest } from 'https'
 import { stringify as formatQueryString } from 'querystring'
 
 // -------------------------------------------------------------------
+
+const { push } = Array.prototype
+
+function extend (opts) {
+  const fn = this
+  const httpRequestPlus = function () {
+    const args = [ opts ]
+    push.apply(args, arguments)
+    const token = args[1]
+    if (CancelToken.is(token)) {
+      args[0] = token
+      args[1] = opts
+    }
+    return fn.apply(this, args)
+  }
+  addHelpers(httpRequestPlus)
+  return httpRequestPlus
+}
+
+const METHODS = 'delete head patch post put'.split(' ')
+const METHODS_LEN = METHODS.length
+
+// add `extend()` and helpers for HTTP methods (except GET because
+// it's the default)
+const addHelpers = fn => {
+  for (let i = 0; i < METHODS_LEN; ++i) {
+    const method = METHODS[i]
+    fn[method] = (...args) => fn(...args, { method })
+  }
+  fn.extend = extend
+}
 
 // assign safe URL parts to an object:
 // - defined
@@ -189,10 +220,5 @@ const httpRequestPlus = cancelable(function (cancelToken) {
 
   return pResponse
 })
+addHelpers(httpRequestPlus)
 export { httpRequestPlus as default }
-
-// helpers for HTTP methods (expect GET because it's the default)
-'delete head patch post put'.split(' ').forEach(method => {
-  httpRequestPlus[method] = (...args) =>
-    httpRequestPlus(...args, { method })
-})

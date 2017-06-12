@@ -115,6 +115,7 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
   }
 
   return new Promise((resolve, reject) => {
+    cancelToken.promise.then(reject)
     req.once('error', reject)
     req.once('response', response => {
       response.cancel = () => {

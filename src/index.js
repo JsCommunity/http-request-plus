@@ -148,17 +148,20 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
     return request
   }
 
-  return request.then(response => {
+  let { maxRedirects = 5 } = opts
+  const loop = request => request.then(response => {
     const { statusCode } = response
-    if (isRedirect(statusCode)) {
+    if (isRedirect(statusCode) && maxRedirects-- > 0) {
       const { location } = response.headers
       if (location !== undefined) {
-        return doRequest(cancelToken, url.resolveObject(location), opts)
+        return loop(doRequest(cancelToken, url.resolveObject(location), opts))
       }
     }
 
     return response
   })
+
+  return loop(request)
 })(doRequest)
 
 // throws if status code is not 2xx

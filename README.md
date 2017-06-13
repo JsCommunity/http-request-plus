@@ -10,7 +10,7 @@ Features:
 - cancelable
 - request `body` can be either a buffer/string or a stream
 - content length header automatically set if available
-- request `query` if provided as object
+- support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects (`maxRedirects = 5`)
 
 ## Install

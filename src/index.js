@@ -39,16 +39,17 @@ const addHelpers = fn => {
   fn.extend = extend
 }
 
-// assign safe URL parts to an object:
-// - defined
-// - accepted by http.request
+// URL parts accepted by http.request:
 const URL_SAFE_KEYS = 'auth hostname path port protocol'.split(' ')
-const URL_SAFE_KEYS_LEN = URL_SAFE_KEYS.length
-const assignSafeUrlParts = (target, url) => {
-  for (let i = 0; i < URL_SAFE_KEYS_LEN; ++i) {
-    const key = URL_SAFE_KEYS[i]
-    const value = url[key]
-    if (value !== null) {
+
+// URL parts preferred in http-request-plus options
+const URL_PREFERRED_KEYS = 'auth hostname pathname port protocol query'.split(' ')
+
+const pickDefined = (target, source, keys) => {
+  for (let i = 0, n = keys.length; i < n; ++i) {
+    const key = keys[i]
+    const value = source[key]
+    if (value != null) {
       target[key] = value
     }
   }
@@ -93,7 +94,7 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
 // -------------------------------------------------------------------
 
 let doRequest = (cancelToken, url, { body, ...opts }) => {
-  assignSafeUrlParts(opts, url)
+  pickDefined(opts, url, URL_SAFE_KEYS)
 
   const req = (
     startsWith(url.protocol.toLowerCase(), 'https')
@@ -187,13 +188,13 @@ doRequest = (doRequest => (cancelToken, url, opts) =>
 const httpRequestPlus = cancelable(function (cancelToken) {
   const opts = {
     hostname: 'localhost',
-    path: '/',
+    pathname: '/',
     protocol: 'http:'
   }
   for (let i = 1, length = arguments.length; i < length; ++i) {
     const arg = arguments[i]
     if (isString(arg)) {
-      assignSafeUrlParts(opts, parseUrl(arg))
+      pickDefined(opts, parseUrl(arg), URL_PREFERRED_KEYS)
     } else {
       assign(opts, arg)
     }
@@ -218,15 +219,16 @@ const httpRequestPlus = cancelable(function (cancelToken) {
     }
   }
 
-  const { query } = opts
-  if (query !== undefined) {
-    delete opts.query
-    opts.path = `${opts.path}?${
-      isString(query)
-        ? query
-        : formatQueryString(query)
-    }`
+  if (opts.path === undefined) {
+    let path = opts.pathname
+    const { query } = opts
+    if (query !== undefined) {
+      path += `?${isString(query) ? query : formatQueryString(query)}`
+    }
+    opts.path = path
   }
+  delete opts.pathname
+  delete opts.query
 
   // http.request only supports path and url.format only pathname
   const url = parseUrl(formatUrl(opts) + opts.path)

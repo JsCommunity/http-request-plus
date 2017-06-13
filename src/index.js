@@ -139,8 +139,16 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
 }
 
 // handles redirects
-doRequest = (doRequest => (cancelToken, url, opts) =>
-  doRequest(cancelToken, url, opts).then(response => {
+doRequest = (doRequest => (cancelToken, url, opts) => {
+  const request = doRequest(cancelToken, url, opts)
+
+  const { body } = opts
+  if (body != null && typeof body.pipe === 'function') {
+    // no redirect if body is a stream
+    return request
+  }
+
+  return request.then(response => {
     const { statusCode } = response
     if (isRedirect(statusCode)) {
       const { location } = response.headers
@@ -151,7 +159,7 @@ doRequest = (doRequest => (cancelToken, url, opts) =>
 
     return response
   })
-)(doRequest)
+})(doRequest)
 
 // throws if status code is not 2xx
 doRequest = (doRequest => (cancelToken, url, opts) =>

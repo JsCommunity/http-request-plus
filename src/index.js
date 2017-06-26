@@ -151,6 +151,9 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
     if (isRedirect(statusCode) && maxRedirects-- > 0) {
       const { location } = response.headers
       if (location !== undefined) {
+        // abort current request
+        response.req.abort()
+
         return loop(doRequest(cancelToken, url.resolveObject(location), opts))
       }
     }

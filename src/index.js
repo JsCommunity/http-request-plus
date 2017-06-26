@@ -119,10 +119,6 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
     cancelToken.promise.then(reject)
     req.once('error', reject)
     req.once('response', response => {
-      cancelToken.promise.then(reason => {
-        response.emit('error', reason)
-      })
-
       response.cancel = () => {
         req.abort()
       }

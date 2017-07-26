@@ -3,8 +3,15 @@ import { assign, startsWith } from 'lodash'
 import { cancelable, CancelToken } from 'promise-toolbox'
 import { format as formatUrl, parse as parseUrl } from 'url'
 import { request as httpRequest } from 'http'
-import { request as httpsRequest } from 'https'
 import { stringify as formatQueryString } from 'querystring'
+
+const httpsRequest = (() => {
+  try {
+    return require('spdy').request
+  } catch (_) {
+    return require('https').request
+  }
+})()
 
 // -------------------------------------------------------------------
 

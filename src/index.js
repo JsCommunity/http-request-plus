@@ -117,11 +117,16 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
 
   return new Promise((resolve, reject) => {
     cancelToken.promise.then(reject)
-    req.once('error', reject)
+    req.once('error', error => {
+      error.url = formatUrl(url)
+      reject(error)
+    })
     req.once('response', response => {
       response.cancel = () => {
         req.abort()
       }
+
+      response.url = formatUrl(url)
 
       response.readAll = encoding => readAllStream(response, encoding)
 
@@ -171,6 +176,7 @@ doRequest = (doRequest => (cancelToken, url, opts) =>
     if ((statusCode / 100 | 0) !== 2) {
       const error = new Error(response.statusMessage)
       error.code = statusCode
+      error.url = response.url
       Object.defineProperty(error, 'response', {
         configurable: true,
         value: response,

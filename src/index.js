@@ -93,7 +93,7 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
 
 // -------------------------------------------------------------------
 
-let doRequest = (cancelToken, url, { body, ...opts }) => {
+let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   pickDefined(opts, url, URL_SAFE_KEYS)
 
   const req = (
@@ -104,6 +104,10 @@ let doRequest = (cancelToken, url, { body, ...opts }) => {
   cancelToken.promise.then(() => {
     req.abort()
   })
+
+  if (onRequest !== undefined) {
+    onRequest(req)
+  }
 
   if (body !== undefined) {
     if (typeof body.pipe === 'function') {

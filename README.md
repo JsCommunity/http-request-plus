@@ -35,7 +35,14 @@ import httpRequestPlus from 'http-request-plus'
 (async () => {
   try {
     console.log(
-      await httpRequestPlus('http://example.org').readAll('utf8')
+      await httpRequestPlus('http://example.org', {
+        onRequest (request) {
+          // this function will be called multiple times in case of redirections
+
+          request.setTimeout(10 * 1e3)
+          request.on('timeout', request.abort)
+        }
+      }).readAll('utf8')
     )
   } catch (error) {
     console.error('An error as occured', error)
@@ -80,8 +87,6 @@ githubRequest.post('/api')
 ### `Promise<response>.cancel()`
 
 ### `Promise<response>.readAll()` → `Promise<buffer>`
-
-### `Promise<response>.request`
 
 ### `response.cancel()`
 ### `response.readAll()` → `Promise<buffer>`

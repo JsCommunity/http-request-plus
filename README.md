@@ -50,6 +50,26 @@ import httpRequestPlus from 'http-request-plus'
 })()
 ```
 
+```js
+import httpRequestPlus from 'http-request-plus'
+
+const makeRequest = async (...args) => {
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+    },
+    body: format.request(...args),
+  }
+
+  const response = await httpRequestPlus(
+    'http://example.org/api',
+    options
+  ).readAll('utf8')
+  return response
+}
+```
+
 ES5:
 
 ```js

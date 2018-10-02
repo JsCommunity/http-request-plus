@@ -59,13 +59,13 @@ const pickDefined = (target, source, keys) => {
 
 const isString = value => typeof value === 'string'
 
-const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
+function readAllStreamHelper (encoding, resolve, reject) {
   const chunks = []
   let length = 0
   const clean = () => {
-    stream.removeListener('data', onData)
-    stream.removeListener('end', onEnd)
-    stream.removeListener('error', onError)
+    this.removeListener('data', onData)
+    this.removeListener('end', onEnd)
+    this.removeListener('error', onError)
   }
 
   const onData = chunk => {
@@ -79,19 +79,31 @@ const readAllStream = (stream, encoding) => new Promise((resolve, reject) => {
     }
 
     const result = Buffer.concat(chunks, length)
-    resolve(encoding ? result.toString(encoding) : result)
+    resolve(
+      encoding !== undefined && encoding !== 'buffer'
+        ? result.toString(encoding)
+        : result
+    )
   }
   const onError = error => {
     clean()
     reject(error)
   }
 
-  stream.on('data', onData)
-  stream.on('end', onEnd)
-  stream.on('error', onError)
-})
+  this.on('data', onData)
+  this.on('end', onEnd)
+  this.on('error', onError)
+}
+
+function readAllStream (encoding) {
+  return new Promise(readAllStreamHelper.bind(this, encoding))
+}
 
 // -------------------------------------------------------------------
+
+function abort () {
+  this.abort()
+}
 
 let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   pickDefined(opts, url, URL_SAFE_KEYS)
@@ -101,9 +113,8 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
       ? httpsRequest
       : httpRequest
   )(opts)
-  cancelToken.promise.then(() => {
-    req.abort()
-  })
+  const abortReq = abort.bind(req)
+  cancelToken.promise.then(abortReq)
 
   if (onRequest !== undefined) {
     onRequest(req)
@@ -126,13 +137,11 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
       reject(error)
     })
     req.once('response', response => {
-      response.cancel = () => {
-        req.abort()
-      }
+      response.cancel = abortReq
 
       response.url = formatUrl(url)
 
-      response.readAll = encoding => readAllStream(response, encoding)
+      response.readAll = readAllStream
 
       const length = response.headers['content-length']
       if (length !== undefined) {
@@ -159,7 +168,7 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
     return request
   }
 
-  const loop = request => request.then(response => {
+  const onResponse = response => {
     const { statusCode } = response
     if (isRedirect(statusCode) && maxRedirects-- > 0) {
       const { location } = response.headers
@@ -172,14 +181,15 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
     }
 
     return response
-  })
+  }
+  const loop = request => request.then(onResponse)
 
   return loop(request)
 })(doRequest)
 
 // throws if status code is not 2xx
-doRequest = (doRequest => (cancelToken, url, opts) =>
-  doRequest(cancelToken, url, opts).then(response => {
+doRequest = (doRequest => {
+  const onResponse = response => {
     const { statusCode } = response
     if ((statusCode / 100 | 0) !== 2) {
       const error = new Error(response.statusMessage)
@@ -195,8 +205,11 @@ doRequest = (doRequest => (cancelToken, url, opts) =>
     }
 
     return response
-  })
-)(doRequest)
+  }
+
+  return (cancelToken, url, opts) =>
+    doRequest(cancelToken, url, opts).then(onResponse)
+})(doRequest)
 
 const httpRequestPlus = cancelable(function (cancelToken) {
   const opts = {

@@ -155,6 +155,10 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
   }
 
   let { maxRedirects = 5 } = opts
+  if (maxRedirects === 0) {
+    return request
+  }
+
   const loop = request => request.then(response => {
     const { statusCode } = response
     if (isRedirect(statusCode) && maxRedirects-- > 0) {

@@ -12,6 +12,7 @@ Features:
 - content length header automatically set if available
 - support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects (`maxRedirects = 5`)
+- response emits `error` when aborted
 
 ## Install
 

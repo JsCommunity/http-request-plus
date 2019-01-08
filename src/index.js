@@ -1,6 +1,6 @@
 import isRedirect from "is-redirect";
 import { assign, startsWith } from "lodash";
-import { cancelable, CancelToken } from "promise-toolbox";
+import { Cancel, cancelable, CancelToken } from "promise-toolbox";
 import { request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
 import { stringify as formatQueryString } from "querystring";
@@ -60,6 +60,10 @@ const pickDefined = (target, source, keys) => {
 
   return target;
 };
+
+function emitAbortedError() {
+  this.emit("error", new Cancel("aborted"));
+}
 
 const isString = value => typeof value === "string";
 
@@ -149,6 +153,8 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
       if (length !== undefined) {
         response.length = +length;
       }
+
+      response.once("aborted", emitAbortedError);
 
       resolve(response);
     });

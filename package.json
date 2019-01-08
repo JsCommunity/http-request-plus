@@ -61,7 +61,6 @@
     "prebuild": "rimraf dist/",
     "predev": "yarn run prebuild",
     "prepublishOnly": "yarn run build",
-    "pretest": "standard",
     "test": "jest"
   },
   "husky": {

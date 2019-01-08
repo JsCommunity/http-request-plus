@@ -30,56 +30,57 @@ Installation of the [npm package](https://npmjs.org/package/http-request-plus):
 ES2015 - ES2016:
 
 ```js
-import httpRequestPlus from 'http-request-plus'
+import httpRequestPlus from "http-request-plus";
 
 (async () => {
   try {
     console.log(
-      await httpRequestPlus('http://example.org', {
-        onRequest (request) {
+      await httpRequestPlus("http://example.org", {
+        onRequest(request) {
           // this function will be called multiple times in case of redirections
 
-          request.setTimeout(10 * 1e3)
-          request.on('timeout', request.abort)
-        }
-      }).readAll('utf8')
-    )
+          request.setTimeout(10 * 1e3);
+          request.on("timeout", request.abort);
+        },
+      }).readAll("utf8")
+    );
   } catch (error) {
-    console.error('An error as occured', error)
+    console.error("An error as occured", error);
   }
-})()
+})();
 ```
 
 ES5:
 
 ```js
-var httpRequestPlus = require('http-request-plus').default
+var httpRequestPlus = require("http-request-plus").default;
 
-httpRequestPlus('http://example.org').readAll('utf8')
+httpRequestPlus("http://example.org")
+  .readAll("utf8")
   .then(body => {
-    console.log(body)
+    console.log(body);
   })
   .catch(error => {
-    console.error('An error as occured', error)
-  })
+    console.error("An error as occured", error);
+  });
 ```
 
 ### HTTP method helpers
 
 ```js
-httpRequestPlus.delete()
-httpRequestPlus.head()
-httpRequestPlus.patch()
-httpRequestPlus.post()
-httpRequestPlus.put()
+httpRequestPlus.delete();
+httpRequestPlus.head();
+httpRequestPlus.patch();
+httpRequestPlus.post();
+httpRequestPlus.put();
 ```
 
 ### `httpRequestPlus.extend(opts)`
 
 ```js
-const githubRequest = httpRequestPlus.extend('https://github.com')
+const githubRequest = httpRequestPlus.extend("https://github.com");
 
-githubRequest.post('/api')
+githubRequest.post("/api");
 ```
 
 ### `httpRequestPlus(options...)` → `Promise<response>`
@@ -89,10 +90,13 @@ githubRequest.post('/api')
 ### `Promise<response>.readAll()` → `Promise<buffer>`
 
 ### `response.cancel()`
+
 ### `response.readAll()` → `Promise<buffer>`
+
 ### `response.length`
 
 ### `error.code`
+
 ### `error.response`
 
 ## Development
@@ -116,7 +120,7 @@ githubRequest.post('/api')
 
 ## Contributions
 
-Contributions are *very* welcomed, either on the documentation or on
+Contributions are _very_ welcomed, either on the documentation or on
 the code.
 
 You may:

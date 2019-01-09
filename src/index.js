@@ -49,6 +49,8 @@ const URL_PREFERRED_KEYS = "auth hostname pathname port protocol query".split(
   " "
 );
 
+const noop = Function.prototype;
+
 const pickDefined = (target, source, keys) => {
   for (let i = 0, n = keys.length; i < n; ++i) {
     const key = keys[i];
@@ -182,6 +184,7 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
       const { location } = response.headers;
       if (location !== undefined) {
         // abort current request
+        response.on("error", noop);
         response.req.abort();
 
         return loop(doRequest(cancelToken, url.resolveObject(location), opts));

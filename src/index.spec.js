@@ -7,6 +7,13 @@ import httpRequestPlus from "./";
 
 // ===================================================================
 
+const freeStream = s =>
+  new Promise((resolve, reject) => {
+    s.on("end", resolve);
+    s.on("error", reject);
+    s.resume();
+  });
+
 const httpError = (res, code = 404, body = undefined) => {
   res.writeHead(code);
   res.end(body);
@@ -72,6 +79,8 @@ describe("httpRequestPlus", () => {
 
       return httpRequestPlus({ port, path: "/foo" }).catch(err => {
         expect(err.url).toBe(`http://localhost:${port}/foo`);
+
+        return freeStream(err.response);
       });
     });
   });
@@ -82,6 +91,8 @@ describe("httpRequestPlus", () => {
 
       return httpRequestPlus({ port, path: "/foo" }).then(res => {
         expect(res.url).toBe(`http://localhost:${port}/foo`);
+
+        return freeStream(res);
       });
     });
 
@@ -91,6 +102,8 @@ describe("httpRequestPlus", () => {
 
       return httpRequestPlus({ port, path: "/foo" }).then(res => {
         expect(res.url).toBe(`http://localhost:${port}/bar`);
+
+        return freeStream(res);
       });
     });
   });

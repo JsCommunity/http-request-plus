@@ -185,6 +185,7 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
       if (location !== undefined) {
         // abort current request
         response.on("error", noop);
+        response.resume();
         response.req.abort();
 
         return loop(doRequest(cancelToken, url.resolveObject(location), opts));

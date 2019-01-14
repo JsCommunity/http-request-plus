@@ -49,8 +49,6 @@ const URL_PREFERRED_KEYS = "auth hostname pathname port protocol query".split(
   " "
 );
 
-const noop = Function.prototype;
-
 const pickDefined = (target, source, keys) => {
   for (let i = 0, n = keys.length; i < n; ++i) {
     const key = keys[i];
@@ -115,14 +113,20 @@ function abort() {
   this.abort();
 }
 
+// helper to abort a response
+function abortResponse() {
+  this.removeListener("aborted", emitAbortedError);
+  this.resume();
+  this.req.abort();
+}
+
 let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   pickDefined(opts, url, URL_SAFE_KEYS);
 
   const req = (startsWith(url.protocol.toLowerCase(), "https")
     ? httpsRequest
     : httpRequest)(opts);
-  const abortReq = abort.bind(req);
-  cancelToken.promise.then(abortReq);
+  cancelToken.promise.then(abort.bind(req));
 
   if (onRequest !== undefined) {
     onRequest(req);
@@ -145,7 +149,7 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
       reject(error);
     });
     req.once("response", response => {
-      response.cancel = abortReq;
+      response.cancel = abortResponse;
 
       response.url = formatUrl(url);
 
@@ -184,9 +188,7 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
       const { location } = response.headers;
       if (location !== undefined) {
         // abort current request
-        response.on("error", noop);
-        response.resume();
-        response.req.abort();
+        response.cancel();
 
         return loop(doRequest(cancelToken, url.resolveObject(location), opts));
       }

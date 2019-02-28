@@ -62,7 +62,10 @@ const pickDefined = (target, source, keys) => {
 };
 
 function emitAbortedError() {
-  this.emit("error", new Cancel("aborted"));
+  // https://github.com/nodejs/node/issues/18756
+  if (!this.complete) {
+    this.emit("error", new Cancel("aborted"));
+  }
 }
 
 const isString = value => typeof value === "string";

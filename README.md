@@ -7,12 +7,12 @@ Features:
 - HTTP & HTTPs
 - promise oriented
 - stream oriented
-- cancelable
+- cancelable via cancel token or `response.cancel()`
 - request `body` can be either a buffer/string or a stream
 - content length header automatically set if available
 - support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects (`maxRedirects = 5`)
-- response emits `error` when aborted
+- response emits `error` on abort and timeout
 
 ## Install
 

@@ -129,7 +129,10 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   const req = (startsWith(url.protocol.toLowerCase(), "https")
     ? httpsRequest
     : httpRequest)(opts);
-  cancelToken.promise.then(abort.bind(req));
+
+  const abortReq = abort.bind(req);
+  cancelToken.promise.then(abortReq);
+  req.once("timeout", abortReq);
 
   if (onRequest !== undefined) {
     onRequest(req);

@@ -1,5 +1,4 @@
 import isRedirect from "is-redirect";
-import { assign, startsWith } from "lodash";
 import { Cancel, cancelable, CancelToken } from "promise-toolbox";
 import { request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
@@ -126,7 +125,7 @@ function abortResponse() {
 let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   pickDefined(opts, url, URL_SAFE_KEYS);
 
-  const req = (startsWith(url.protocol.toLowerCase(), "https")
+  const req = (url.protocol.toLowerCase().startsWith("https")
     ? httpsRequest
     : httpRequest)(opts);
 
@@ -242,7 +241,7 @@ const httpRequestPlus = cancelable(function(cancelToken) {
     if (isString(arg)) {
       pickDefined(opts, parseUrl(arg), URL_PREFERRED_KEYS);
     } else {
-      assign(opts, arg);
+      Object.assign(opts, arg);
     }
   }
 

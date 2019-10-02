@@ -1,4 +1,6 @@
-# http-request-plus [![Build Status](https://travis-ci.org/JsCommunity/http-request-plus.png?branch=master)](https://travis-ci.org/JsCommunity/http-request-plus)
+# http-request-plus
+
+[![Package Version](https://badgen.net/npm/v/http-request-plus)](https://npmjs.org/package/http-request-plus) [![Build Status](https://travis-ci.org/JsCommunity/http-request-plus.png?branch=master)](https://travis-ci.org/JsCommunity/http-request-plus) [![PackagePhobia](https://badgen.net/packagephobia/install/http-request-plus)](https://packagephobia.now.sh/result?p=http-request-plus) [![Latest Commit](https://badgen.net/github/last-commit/JsCommunity/http-request-plus)](https://github.com/JsCommunity/http-request-plus/commits/master)
 
 > Small wrapper around {http,https}.request()
 

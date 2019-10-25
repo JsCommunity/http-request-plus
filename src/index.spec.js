@@ -2,6 +2,7 @@
 
 import { Cancel, CancelToken } from "promise-toolbox";
 import { createServer as createHttpServer } from "http";
+import { Readable } from "stream";
 
 import httpRequestPlus from "./";
 
@@ -130,5 +131,24 @@ describe("httpRequestPlus", () => {
         await new Promise(resolve => r.on("error", resolve))
       ).toBeInstanceOf(Cancel);
     });
+  });
+
+  it("handles stream body error", async () => {
+    const error = new Error();
+    const body = new Readable({
+      read() {
+        this.emit("error", error);
+      },
+    });
+
+    server.once("/post", (req, res) => req.resume().on("end", () => res.end()));
+
+    const actualError = await rejectionOf(
+      httpRequestPlus.post({ port, path: "/post", body })
+    );
+
+    expect(actualError.url).toBe(`http://localhost:${port}/post`);
+    expect(actualError).toBe(error);
+    expect(body.destroyed).toBe(true);
   });
 });

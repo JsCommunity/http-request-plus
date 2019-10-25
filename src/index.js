@@ -1,4 +1,5 @@
 import isRedirect from "is-redirect";
+import pump from "pump";
 import { Cancel, cancelable, CancelToken } from "promise-toolbox";
 import { request as httpRequest } from "http";
 import { request as httpsRequest } from "https";
@@ -137,22 +138,30 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
     onRequest(req);
   }
 
-  if (body !== undefined) {
-    if (typeof body.pipe === "function") {
-      body.pipe(req);
-    } else {
-      req.end(body);
-    }
-  } else {
-    req.end();
-  }
-
   return new Promise((resolve, reject) => {
-    cancelToken.promise.then(reject);
-    req.once("error", error => {
+    // no problem if called multiple times
+    const onError = error => {
       error.url = formatUrl(url);
       reject(error);
-    });
+    };
+
+    if (body !== undefined) {
+      if (typeof body.pipe === "function") {
+        pump(body, req, error => {
+          if (error != null) {
+            onError(error);
+          }
+        });
+        body.pipe(req);
+      } else {
+        req.end(body);
+      }
+    } else {
+      req.end();
+    }
+
+    cancelToken.promise.then(reject);
+    req.once("error", onError);
     req.once("response", response => {
       response.cancel = abortResponse;
 

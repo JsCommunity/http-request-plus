@@ -152,7 +152,6 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
             onError(error);
           }
         });
-        body.pipe(req);
       } else {
         req.end(body);
       }

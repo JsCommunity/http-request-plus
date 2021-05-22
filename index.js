@@ -1,9 +1,11 @@
 const isRedirect = require("is-redirect");
-const pump = require("pump");
 const { Cancel, cancelable, CancelToken } = require("promise-toolbox");
 const { request: httpRequest } = require("http");
 const { request: httpsRequest } = require("https");
 const { stringify: formatQueryString } = require("querystring");
+
+// eslint-disable-next-line node/no-unsupported-features/node-builtins
+const pump = require("stream").pipeline || require("pump");
 
 // eslint-disable-next-line node/no-deprecated-api
 const { format: formatUrl, parse: parseUrl } = require("url");

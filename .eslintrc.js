@@ -10,13 +10,12 @@ module.exports = {
     "prettier",
   ],
 
-  parser: "@babel/eslint-parser",
   parserOptions: {
     sourceType: "module",
   },
 
   rules: {
     // uncomment if you are using a builder like Babel
-    "node/no-unsupported-features/es-syntax": "off",
+    // "node/no-unsupported-features/es-syntax": "off",
   },
 };

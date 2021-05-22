@@ -1,10 +1,10 @@
 /* eslint-env jest */
 
-import { Cancel, CancelToken } from "promise-toolbox";
-import { createServer as createHttpServer } from "http";
-import { Readable } from "stream";
+const { Cancel, CancelToken } = require("promise-toolbox");
+const { createServer: createHttpServer } = require("http");
+const { Readable } = require("stream");
 
-import httpRequestPlus from "./";
+const httpRequestPlus = require("./");
 
 // ===================================================================
 

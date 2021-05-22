@@ -1,12 +1,12 @@
-import isRedirect from "is-redirect";
-import pump from "pump";
-import { Cancel, cancelable, CancelToken } from "promise-toolbox";
-import { request as httpRequest } from "http";
-import { request as httpsRequest } from "https";
-import { stringify as formatQueryString } from "querystring";
+const isRedirect = require("is-redirect");
+const pump = require("pump");
+const { Cancel, cancelable, CancelToken } = require("promise-toolbox");
+const { request: httpRequest } = require("http");
+const { request: httpsRequest } = require("https");
+const { stringify: formatQueryString } = require("querystring");
 
 // eslint-disable-next-line node/no-deprecated-api
-import { format as formatUrl, parse as parseUrl } from "url";
+const { format: formatUrl, parse: parseUrl } = require("url");
 
 // -------------------------------------------------------------------
 
@@ -291,4 +291,4 @@ const httpRequestPlus = cancelable(function (cancelToken) {
   return pResponse;
 });
 addHelpers(httpRequestPlus);
-export { httpRequestPlus as default };
+module.exports = httpRequestPlus;

@@ -19,13 +19,9 @@
     "email": "julien.fontanet@isonoe.net"
   },
   "preferGlobal": false,
-  "main": "dist/",
   "bin": {},
-  "files": [
-    "dist/"
-  ],
   "engines": {
-    "node": ">=6"
+    "node": ">=8.3"
   },
   "dependencies": {
     "is-redirect": "^1.0.0",
@@ -33,11 +29,6 @@
     "pump": "^3.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.1.0",
-    "@babel/core": "^7.1.0",
-    "@babel/eslint-parser": "^7.14.3",
-    "@babel/preset-env": "^7.1.0",
-    "cross-env": "^7.0.3",
     "eslint": "^7.27.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-standard": "^16.0.2",
@@ -47,16 +38,10 @@
     "husky": "^4.3.8",
     "jest": "^26.6.3",
     "lint-staged": "^11.0.0",
-    "prettier": "^2.3.0",
-    "rimraf": "^3.0.0"
+    "prettier": "^2.3.0"
   },
   "scripts": {
-    "build": "cross-env NODE_ENV=production babel --source-maps --out-dir=dist/ src/",
-    "dev": "cross-env NODE_ENV=development babel --watch --source-maps --out-dir=dist/ src/",
     "dev-test": "jest --bail --watch",
-    "prebuild": "rimraf dist/",
-    "predev": "npm run prebuild",
-    "prepublishOnly": "npm run build",
     "test": "jest"
   },
   "husky": {
@@ -66,9 +51,6 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "roots": [
-      "<rootDir>/src"
-    ],
     "testRegex": "\\.spec\\.js$"
   },
   "lint-staged": {

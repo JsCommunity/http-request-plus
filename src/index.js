@@ -14,7 +14,7 @@ const { push } = Array.prototype;
 
 function extend(opts) {
   const fn = this;
-  const httpRequestPlus = function() {
+  const httpRequestPlus = function () {
     const args = [opts];
     push.apply(args, arguments);
     const token = args[1];
@@ -33,7 +33,7 @@ const METHODS_LEN = METHODS.length;
 
 // add `extend()` and helpers for HTTP methods (except GET because
 // it's the default)
-const addHelpers = fn => {
+const addHelpers = (fn) => {
   for (let i = 0; i < METHODS_LEN; ++i) {
     const method = METHODS[i];
     fn[method] = (...args) => fn(...args, { method });
@@ -68,7 +68,7 @@ function emitAbortedError() {
   }
 }
 
-const isString = value => typeof value === "string";
+const isString = (value) => typeof value === "string";
 
 function readAllStreamHelper(encoding, resolve, reject) {
   const chunks = [];
@@ -79,7 +79,7 @@ function readAllStreamHelper(encoding, resolve, reject) {
     this.removeListener("error", onError);
   };
 
-  const onData = chunk => {
+  const onData = (chunk) => {
     chunks.push(chunk);
     length += chunk.length;
   };
@@ -96,7 +96,7 @@ function readAllStreamHelper(encoding, resolve, reject) {
         : result
     );
   };
-  const onError = error => {
+  const onError = (error) => {
     clean();
     reject(error);
   };
@@ -126,9 +126,9 @@ function abortResponse() {
 let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
   pickDefined(opts, url, URL_SAFE_KEYS);
 
-  const req = (url.protocol.toLowerCase().startsWith("https")
-    ? httpsRequest
-    : httpRequest)(opts);
+  const req = (
+    url.protocol.toLowerCase().startsWith("https") ? httpsRequest : httpRequest
+  )(opts);
 
   const abortReq = abort.bind(req);
   cancelToken.promise.then(abortReq);
@@ -140,14 +140,14 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
 
   return new Promise((resolve, reject) => {
     // no problem if called multiple times
-    const onError = error => {
+    const onError = (error) => {
       error.url = formatUrl(url);
       reject(error);
     };
 
     if (body !== undefined) {
       if (typeof body.pipe === "function") {
-        pump(body, req, error => {
+        pump(body, req, (error) => {
           if (error != null) {
             onError(error);
           }
@@ -161,7 +161,7 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
 
     cancelToken.promise.then(reject);
     req.once("error", onError);
-    req.once("response", response => {
+    req.once("response", (response) => {
       response.cancel = abortResponse;
 
       response.url = formatUrl(url);
@@ -181,7 +181,7 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
 };
 
 // handles redirects
-doRequest = (doRequest => (cancelToken, url, opts) => {
+doRequest = ((doRequest) => (cancelToken, url, opts) => {
   const request = doRequest(cancelToken, url, opts);
 
   const { body } = opts;
@@ -195,7 +195,7 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
     return request;
   }
 
-  const onResponse = response => {
+  const onResponse = (response) => {
     const { statusCode } = response;
     if (isRedirect(statusCode) && maxRedirects-- > 0) {
       const { location } = response.headers;
@@ -209,14 +209,14 @@ doRequest = (doRequest => (cancelToken, url, opts) => {
 
     return response;
   };
-  const loop = request => request.then(onResponse);
+  const loop = (request) => request.then(onResponse);
 
   return loop(request);
 })(doRequest);
 
 // throws if status code is not 2xx
-doRequest = (doRequest => {
-  const onResponse = response => {
+doRequest = ((doRequest) => {
+  const onResponse = (response) => {
     const { statusCode } = response;
     if (((statusCode / 100) | 0) !== 2) {
       const error = new Error(response.statusMessage);
@@ -238,7 +238,7 @@ doRequest = (doRequest => {
     doRequest(cancelToken, url, opts).then(onResponse);
 })(doRequest);
 
-const httpRequestPlus = cancelable(function(cancelToken) {
+const httpRequestPlus = cancelable(function (cancelToken) {
   const opts = {
     hostname: "localhost",
     pathname: "/",
@@ -285,8 +285,8 @@ const httpRequestPlus = cancelable(function(cancelToken) {
   const url = parseUrl(formatUrl(opts) + opts.path);
 
   const pResponse = doRequest(cancelToken, url, opts);
-  pResponse.readAll = encoding =>
-    pResponse.then(response => response.readAll(encoding));
+  pResponse.readAll = (encoding) =>
+    pResponse.then((response) => response.readAll(encoding));
 
   return pResponse;
 });

@@ -8,7 +8,7 @@ import httpRequestPlus from "./";
 
 // ===================================================================
 
-const freeStream = s =>
+const freeStream = (s) =>
   new Promise((resolve, reject) => {
     s.on("end", resolve);
     s.on("error", reject);
@@ -27,12 +27,12 @@ const redirect = (res, url) => {
   res.end();
 };
 
-const rejectionOf = p =>
+const rejectionOf = (p) =>
   p.then(
-    _ => {
+    (_) => {
       throw _;
     },
-    _ => _
+    (_) => _
   );
 
 // ===================================================================
@@ -40,10 +40,10 @@ const rejectionOf = p =>
 describe("httpRequestPlus", () => {
   let server;
   let port;
-  beforeAll(done => {
+  beforeAll((done) => {
     server = createHttpServer((req, res) =>
       server.emit(req.url, req, res)
-    ).listen(0, "localhost", error => {
+    ).listen(0, "localhost", (error) => {
       if (error) {
         return done(error);
       }
@@ -52,7 +52,7 @@ describe("httpRequestPlus", () => {
       done();
     });
   });
-  afterAll(done => {
+  afterAll((done) => {
     server.close(done);
   });
 
@@ -61,7 +61,7 @@ describe("httpRequestPlus", () => {
 
     return httpRequestPlus({ port, path: "/foo" })
       .readAll("utf-8")
-      .then(body => {
+      .then((body) => {
         expect(body).toBe("bar");
       });
   });
@@ -69,7 +69,7 @@ describe("httpRequestPlus", () => {
   describe("error", () => {
     it("contains the requested URL", () => {
       return httpRequestPlus({ hostname: "invalid.", path: "/foo" }).catch(
-        err => {
+        (err) => {
           expect(err.url).toBe(`http://invalid./foo`);
         }
       );
@@ -78,7 +78,7 @@ describe("httpRequestPlus", () => {
     it("contains the requested URL on error status code", () => {
       server.once("/foo", (req, res) => httpError(res));
 
-      return httpRequestPlus({ port, path: "/foo" }).catch(err => {
+      return httpRequestPlus({ port, path: "/foo" }).catch((err) => {
         expect(err.url).toBe(`http://localhost:${port}/foo`);
 
         return freeStream(err.response);
@@ -90,7 +90,7 @@ describe("httpRequestPlus", () => {
     it("contains the requested URL", () => {
       server.once("/foo", (req, res) => res.end("foo"));
 
-      return httpRequestPlus({ port, path: "/foo" }).then(res => {
+      return httpRequestPlus({ port, path: "/foo" }).then((res) => {
         expect(res.url).toBe(`http://localhost:${port}/foo`);
 
         return freeStream(res);
@@ -101,7 +101,7 @@ describe("httpRequestPlus", () => {
       server.once("/foo", (req, res) => redirect(res, "/bar"));
       server.once("/bar", (req, res) => res.end("bar"));
 
-      return httpRequestPlus({ port, path: "/foo" }).then(res => {
+      return httpRequestPlus({ port, path: "/foo" }).then((res) => {
         expect(res.url).toBe(`http://localhost:${port}/bar`);
 
         return freeStream(res);
@@ -128,7 +128,7 @@ describe("httpRequestPlus", () => {
       const r = await httpRequestPlus(token, { port });
       cancel();
       expect(
-        await new Promise(resolve => r.on("error", resolve))
+        await new Promise((resolve) => r.on("error", resolve))
       ).toBeInstanceOf(Cancel);
     });
   });

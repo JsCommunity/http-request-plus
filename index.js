@@ -1,5 +1,6 @@
+const cancelable = require("promise-toolbox/cancelable");
+const CancelToken = require("promise-toolbox/CancelToken");
 const isRedirect = require("is-redirect");
-const { cancelable, CancelToken } = require("promise-toolbox");
 const { request: httpRequest } = require("http");
 const { request: httpsRequest } = require("https");
 const { stringify: formatQueryString } = require("querystring");

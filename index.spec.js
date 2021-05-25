@@ -154,7 +154,7 @@ describe("httpRequestPlus", () => {
 
   it("handles aborted response", async () => {
     server.once("/", (req, res) => {
-      res.write("");
+      res.write(" ");
       setImmediate(() => {
         res.destroy();
       });

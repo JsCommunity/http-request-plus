@@ -129,7 +129,7 @@ describe("httpRequestPlus", () => {
       cancel();
       expect(
         await new Promise((resolve) => r.on("error", resolve))
-      ).toBeInstanceOf(Cancel);
+      ).toBeInstanceOf(Error);
     });
   });
 
@@ -150,5 +150,23 @@ describe("httpRequestPlus", () => {
     expect(actualError.url).toBe(`http://localhost:${port}/post`);
     expect(actualError).toBe(error);
     expect(body.destroyed).toBe(true);
+  });
+
+  it("handles aborted response", async () => {
+    server.once("/", (req, res) => {
+      res.write("");
+      setImmediate(() => {
+        res.destroy();
+      });
+    });
+
+    const res = await httpRequestPlus({ path: "/", port });
+    const error = await new Promise((resolve) => {
+      res.on("error", resolve);
+    });
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe("HTTP connection abruptly closed");
+    expect(error.method).toBe("GET");
+    expect(error.url).toBe(`http://localhost:${port}/`);
   });
 });

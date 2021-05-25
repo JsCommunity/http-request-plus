@@ -1,5 +1,5 @@
 const isRedirect = require("is-redirect");
-const { Cancel, cancelable, CancelToken } = require("promise-toolbox");
+const { cancelable, CancelToken } = require("promise-toolbox");
 const { request: httpRequest } = require("http");
 const { request: httpsRequest } = require("https");
 const { stringify: formatQueryString } = require("querystring");
@@ -66,7 +66,10 @@ const pickDefined = (target, source, keys) => {
 function emitAbortedError() {
   // https://github.com/nodejs/node/issues/18756
   if (!this.complete) {
-    this.emit("error", new Cancel("aborted"));
+    const error = new Error("HTTP connection abruptly closed");
+    error.url = this.url;
+    error.method = this.req.method;
+    this.emit("error", error);
   }
 }
 

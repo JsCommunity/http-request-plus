@@ -67,9 +67,15 @@ const pickDefined = (target, source, keys) => {
 function emitAbortedError() {
   // https://github.com/nodejs/node/issues/18756
   if (!this.complete) {
-    const error = new Error("HTTP connection abruptly closed");
+    const { aborted: canceled, method } = this.req;
+    const error = new Error(
+      canceled
+        ? "HTTP request has been canceled"
+        : "HTTP connection abruptly closed"
+    );
+    error.canceled = canceled;
+    error.method = method;
     error.url = this.url;
-    error.method = this.req.method;
     this.emit("error", error);
   }
 }

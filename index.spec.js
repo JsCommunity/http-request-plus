@@ -127,9 +127,12 @@ describe("httpRequestPlus", () => {
 
       const r = await httpRequestPlus(token, { port });
       cancel();
-      expect(
-        await new Promise((resolve) => r.on("error", resolve))
-      ).toBeInstanceOf(Error);
+      const error = await new Promise((resolve) => r.on("error", resolve));
+      expect(error).toBeInstanceOf(Error);
+      expect(error.canceled).toBe(true);
+      expect(error.message).toBe("HTTP request has been canceled");
+      expect(error.method).toBe("GET");
+      expect(error.url).toBe(`http://localhost:${port}/`);
     });
   });
 
@@ -165,6 +168,7 @@ describe("httpRequestPlus", () => {
       res.on("error", resolve);
     });
     expect(error).toBeInstanceOf(Error);
+    expect(error.canceled).toBe(false);
     expect(error.message).toBe("HTTP connection abruptly closed");
     expect(error.method).toBe("GET");
     expect(error.url).toBe(`http://localhost:${port}/`);

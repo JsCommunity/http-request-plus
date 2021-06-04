@@ -1,7 +1,13 @@
+.*
+
 /benchmark/
 /benchmarks/
 *.bench.js
 *.bench.js.map
+
+/coverage/
+
+/docs/
 
 /examples/
 example.js
@@ -15,6 +21,8 @@ example.js.map
 *.fixture.js.map
 *.fixtures.js
 *.fixtures.js.map
+
+/src/
 
 /test/
 /tests/

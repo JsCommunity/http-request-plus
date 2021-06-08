@@ -11,7 +11,7 @@ module.exports = {
   ],
 
   parserOptions: {
-    sourceType: "module",
+    sourceType: "script", // or "module" if using ES modules
   },
 
   rules: {

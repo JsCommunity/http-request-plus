@@ -64,13 +64,17 @@ const pickDefined = (target, source, keys) => {
   return target;
 };
 
+const $$canceled =
+  typeof Symbol !== "undefined"
+    ? Symbol("canceled")
+    : "@@http-request-plus/canceled";
+
 function emitAbortedError() {
   // https://github.com/nodejs/node/issues/18756
   if (!this.complete) {
     const { req } = this;
 
-    // req.aborted was a timestamp before Node 11
-    const canceled = Boolean(req.aborted);
+    const canceled = Boolean(req[$$canceled]);
 
     const error = new Error(
       canceled
@@ -129,6 +133,7 @@ function readAllStream(encoding) {
 // -------------------------------------------------------------------
 
 function abort() {
+  this[$$canceled] = true;
   this.abort();
 }
 

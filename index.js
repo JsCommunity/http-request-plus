@@ -64,10 +64,13 @@ const pickDefined = (target, source, keys) => {
   return target;
 };
 
-const $$canceled =
+const makeSymbol =
   typeof Symbol !== "undefined"
-    ? Symbol("canceled")
-    : "@@http-request-plus/canceled";
+    ? Symbol
+    : (desc) => "@@http-request-plus/" + desc;
+
+const $$canceled = makeSymbol("canceled");
+const $$timeout = makeSymbol("timeout");
 
 function emitAbortedError() {
   // https://github.com/nodejs/node/issues/18756
@@ -75,15 +78,19 @@ function emitAbortedError() {
     const { req } = this;
 
     const canceled = Boolean(req[$$canceled]);
+    const timeout = Boolean(req[$$timeout]);
 
     const error = new Error(
       canceled
         ? "HTTP request has been canceled"
+        : timeout
+        ? "HTTP connection has timed out"
         : "HTTP connection abruptly closed"
     );
     error.canceled = canceled;
     error.method = req.method;
     error.url = this.url;
+    error.timeout = timeout;
     this.emit("error", error);
   }
 }
@@ -137,6 +144,11 @@ function abort() {
   this.abort();
 }
 
+function timeoutReq() {
+  this[$$timeout] = true;
+  this.abort();
+}
+
 // helper to abort a response
 function abortResponse() {
   this.removeListener("aborted", emitAbortedError);
@@ -153,7 +165,7 @@ let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
 
   const abortReq = abort.bind(req);
   cancelToken.promise.then(abortReq);
-  req.once("timeout", abortReq);
+  req.once("timeout", timeoutReq);
 
   if (onRequest !== undefined) {
     onRequest(req);

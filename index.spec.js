@@ -132,6 +132,7 @@ describe("httpRequestPlus", () => {
       expect(error.canceled).toBe(true);
       expect(error.message).toBe("HTTP request has been canceled");
       expect(error.method).toBe("GET");
+      expect(error.timeout).toBe(false);
       expect(error.url).toBe(`http://localhost:${port}/`);
     });
   });
@@ -171,6 +172,24 @@ describe("httpRequestPlus", () => {
     expect(error.canceled).toBe(false);
     expect(error.message).toBe("HTTP connection abruptly closed");
     expect(error.method).toBe("GET");
+    expect(error.timeout).toBe(false);
+    expect(error.url).toBe(`http://localhost:${port}/`);
+  });
+
+  it("handles timeout", async () => {
+    server.once("/", (req, res) => {
+      res.write(" ");
+    });
+
+    const res = await httpRequestPlus({ path: "/", port, timeout: 10 });
+    const error = await new Promise((resolve) => {
+      res.on("error", resolve);
+    });
+    expect(error).toBeInstanceOf(Error);
+    expect(error.canceled).toBe(false);
+    expect(error.message).toBe("HTTP connection has timed out");
+    expect(error.method).toBe("GET");
+    expect(error.timeout).toBe(true);
     expect(error.url).toBe(`http://localhost:${port}/`);
   });
 });

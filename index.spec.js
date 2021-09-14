@@ -66,6 +66,23 @@ describe("httpRequestPlus", () => {
       });
   });
 
+  /* eslint-disable node/no-unsupported-features/node-builtins */
+  if (typeof URL !== "undefined") {
+    it("supports URL params", async () => {
+      server.once("/foo", (req, res) => res.end("bar"));
+
+      const url = new URL("http://localhost/foo");
+      url.port = port;
+
+      return httpRequestPlus(url)
+        .readAll("utf-8")
+        .then((body) => {
+          expect(body).toBe("bar");
+        });
+    });
+  }
+  /* eslint-enable node/no-unsupported-features/node-builtins */
+
   describe("error", () => {
     it("contains the requested URL", () => {
       return httpRequestPlus({ hostname: "invalid.", path: "/foo" }).catch(

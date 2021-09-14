@@ -15,6 +15,7 @@ Features:
 - support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects (`maxRedirects = 5`)
 - response emits `error` on abort and timeout
+- [`URL`](https://nodejs.org/dist/latest/docs/api/url.html) objects can be used as params
 
 ## Install
 
@@ -60,10 +61,10 @@ var httpRequestPlus = require("http-request-plus").default;
 
 httpRequestPlus("http://example.org")
   .readAll("utf8")
-  .then(body => {
+  .then((body) => {
     console.log(body);
   })
-  .catch(error => {
+  .catch((error) => {
     console.error("An error as occured", error);
   });
 ```

@@ -279,10 +279,18 @@ const httpRequestPlus = cancelable(function (cancelToken) {
   };
   for (let i = 1, length = arguments.length; i < length; ++i) {
     const arg = arguments[i];
-    if (isString(arg)) {
-      pickDefined(opts, parseUrl(arg), URL_PREFERRED_KEYS);
-    } else {
-      Object.assign(opts, arg);
+    if (arg != null) {
+      if (isString(arg)) {
+        pickDefined(opts, parseUrl(arg), URL_PREFERRED_KEYS);
+      } else if (isString(arg.href)) {
+        // consider it as a WHATWG URL object
+        //
+        // this object must be handled differently because its properties are
+        // non-enumerable
+        pickDefined(opts, arg, URL_PREFERRED_KEYS);
+      } else {
+        Object.assign(opts, arg);
+      }
     }
   }
 

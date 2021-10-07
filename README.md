@@ -57,7 +57,7 @@ import httpRequestPlus from "http-request-plus";
 ES5:
 
 ```js
-var httpRequestPlus = require("http-request-plus").default;
+var httpRequestPlus = require("http-request-plus");
 
 httpRequestPlus("http://example.org")
   .readAll("utf8")

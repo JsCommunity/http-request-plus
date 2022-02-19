@@ -40,6 +40,11 @@ import httpRequestPlus from "http-request-plus";
   try {
     console.log(
       await httpRequestPlus("http://example.org", {
+        // By default, http-request-plus throws if the reponse's status Code is not 2xx
+        //
+        // This option can be used to bypass this
+        bypassStatusCheck: true,
+
         onRequest(request) {
           // this function will be called multiple times in case of redirections
 

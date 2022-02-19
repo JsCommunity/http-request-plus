@@ -267,8 +267,10 @@ doRequest = ((doRequest) => {
     return response;
   };
 
-  return (cancelToken, url, opts) =>
-    doRequest(cancelToken, url, opts).then(onResponse);
+  return (cancelToken, url, { bypassStatusCheck = false, ...opts }) => {
+    const promise = doRequest(cancelToken, url, opts);
+    return bypassStatusCheck ? promise : promise.then(onResponse);
+  };
 })(doRequest);
 
 const httpRequestPlus = cancelable(function (cancelToken) {

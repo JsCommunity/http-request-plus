@@ -103,6 +103,18 @@ describe("httpRequestPlus", () => {
     });
   });
 
+  describe("bypassStatusCheck", () => {
+    it("can be used do disable status check", async () => {
+      const statusCode = 401;
+      const body = "body";
+      server.once("/", (_, res) => httpError(res, statusCode, body));
+
+      const response = await httpRequestPlus({ bypassStatusCheck: true, port });
+      expect(response.statusCode).toBe(statusCode);
+      expect(await response.readAll("utf8")).toBe(body);
+    });
+  });
+
   describe("response", () => {
     it("contains the requested URL", () => {
       server.once("/foo", (req, res) => res.end("foo"));

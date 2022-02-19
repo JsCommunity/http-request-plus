@@ -13,7 +13,7 @@ Features:
 - request `body` can be either a buffer/string or a stream
 - content length header automatically set if available
 - support `pathname` & `query` (string or object) if no `path` provided
-- handle redirects (`maxRedirects = 5`)
+- handle redirects
 - response emits `error` on abort and timeout
 - [`URL`](https://nodejs.org/dist/latest/docs/api/url.html) objects can be used as params
 
@@ -44,6 +44,11 @@ import httpRequestPlus from "http-request-plus";
         //
         // This option can be used to bypass this
         bypassStatusCheck: true,
+
+        // Maximum number of redirects that should be handled by http-request-plus
+        //
+        // Defaults to 5
+        maxRedirects: 0,
 
         onRequest(request) {
           // this function will be called multiple times in case of redirections

@@ -1,5 +1,5 @@
-/* eslint-env jest */
-
+const assert = require("assert");
+const { after, before, describe, it } = require("tap").mocha;
 const { Cancel, CancelToken } = require("promise-toolbox");
 const { createServer: createHttpServer } = require("http");
 const { Readable } = require("stream");
@@ -40,7 +40,7 @@ const rejectionOf = (p) =>
 describe("httpRequestPlus", () => {
   let server;
   let port;
-  beforeAll((done) => {
+  before((done) => {
     server = createHttpServer((req, res) =>
       server.emit(req.url, req, res)
     ).listen(0, "localhost", (error) => {
@@ -52,7 +52,7 @@ describe("httpRequestPlus", () => {
       done();
     });
   });
-  afterAll((done) => {
+  after((done) => {
     server.close(done);
   });
 
@@ -62,7 +62,7 @@ describe("httpRequestPlus", () => {
     return httpRequestPlus({ port, path: "/foo" })
       .readAll("utf-8")
       .then((body) => {
-        expect(body).toBe("bar");
+        assert.strictEqual(body, "bar");
       });
   });
 
@@ -77,7 +77,7 @@ describe("httpRequestPlus", () => {
       return httpRequestPlus(url)
         .readAll("utf-8")
         .then((body) => {
-          expect(body).toBe("bar");
+          assert.strictEqual(body, "bar");
         });
     });
   }
@@ -87,7 +87,7 @@ describe("httpRequestPlus", () => {
     it("contains the requested URL", () => {
       return httpRequestPlus({ hostname: "invalid.", path: "/foo" }).catch(
         (err) => {
-          expect(err.url).toBe(`http://invalid./foo`);
+          assert.strictEqual(err.url, `http://invalid./foo`);
         }
       );
     });
@@ -96,7 +96,7 @@ describe("httpRequestPlus", () => {
       server.once("/foo", (req, res) => httpError(res));
 
       return httpRequestPlus({ port, path: "/foo" }).catch((err) => {
-        expect(err.url).toBe(`http://localhost:${port}/foo`);
+        assert.strictEqual(err.url, `http://localhost:${port}/foo`);
 
         return freeStream(err.response);
       });
@@ -110,8 +110,8 @@ describe("httpRequestPlus", () => {
       server.once("/", (_, res) => httpError(res, statusCode, body));
 
       const response = await httpRequestPlus({ bypassStatusCheck: true, port });
-      expect(response.statusCode).toBe(statusCode);
-      expect(await response.readAll("utf8")).toBe(body);
+      assert.strictEqual(response.statusCode, statusCode);
+      assert.strictEqual(await response.readAll("utf8"), body);
     });
   });
 
@@ -120,7 +120,7 @@ describe("httpRequestPlus", () => {
       server.once("/foo", (req, res) => res.end("foo"));
 
       return httpRequestPlus({ port, path: "/foo" }).then((res) => {
-        expect(res.url).toBe(`http://localhost:${port}/foo`);
+        assert.strictEqual(res.url, `http://localhost:${port}/foo`);
 
         return freeStream(res);
       });
@@ -131,7 +131,7 @@ describe("httpRequestPlus", () => {
       server.once("/bar", (req, res) => res.end("bar"));
 
       return httpRequestPlus({ port, path: "/foo" }).then((res) => {
-        expect(res.url).toBe(`http://localhost:${port}/bar`);
+        assert.strictEqual(res.url, `http://localhost:${port}/bar`);
 
         return freeStream(res);
       });
@@ -143,9 +143,9 @@ describe("httpRequestPlus", () => {
       const { cancel, token } = CancelToken.source();
 
       cancel();
-      expect(
-        await rejectionOf(httpRequestPlus(token, { port }))
-      ).toBeInstanceOf(Cancel);
+      assert(
+        (await rejectionOf(httpRequestPlus(token, { port }))) instanceof Cancel
+      );
     });
 
     it("can cancel the response which emit an error event", async () => {
@@ -157,12 +157,12 @@ describe("httpRequestPlus", () => {
       const r = await httpRequestPlus(token, { port });
       cancel();
       const error = await new Promise((resolve) => r.on("error", resolve));
-      expect(error).toBeInstanceOf(Error);
-      expect(error.canceled).toBe(true);
-      expect(error.message).toBe("HTTP request has been canceled");
-      expect(error.method).toBe("GET");
-      expect(error.timeout).toBe(false);
-      expect(error.url).toBe(`http://localhost:${port}/`);
+      assert(error instanceof Error);
+      assert.strictEqual(error.canceled, true);
+      assert.strictEqual(error.message, "HTTP request has been canceled");
+      assert.strictEqual(error.method, "GET");
+      assert.strictEqual(error.timeout, false);
+      assert.strictEqual(error.url, `http://localhost:${port}/`);
     });
   });
 
@@ -180,9 +180,9 @@ describe("httpRequestPlus", () => {
       httpRequestPlus.post({ port, path: "/post", body })
     );
 
-    expect(actualError.url).toBe(`http://localhost:${port}/post`);
-    expect(actualError).toBe(error);
-    expect(body.destroyed).toBe(true);
+    assert.strictEqual(actualError.url, `http://localhost:${port}/post`);
+    assert.strictEqual(actualError, error);
+    assert.strictEqual(body.destroyed, true);
   });
 
   it("handles aborted response", async () => {
@@ -197,12 +197,12 @@ describe("httpRequestPlus", () => {
     const error = await new Promise((resolve) => {
       res.on("error", resolve);
     });
-    expect(error).toBeInstanceOf(Error);
-    expect(error.canceled).toBe(false);
-    expect(error.message).toBe("HTTP connection abruptly closed");
-    expect(error.method).toBe("GET");
-    expect(error.timeout).toBe(false);
-    expect(error.url).toBe(`http://localhost:${port}/`);
+    assert(error instanceof Error);
+    assert.strictEqual(error.canceled, false);
+    assert.strictEqual(error.message, "HTTP connection abruptly closed");
+    assert.strictEqual(error.method, "GET");
+    assert.strictEqual(error.timeout, false);
+    assert.strictEqual(error.url, `http://localhost:${port}/`);
   });
 
   it("handles timeout", async () => {
@@ -214,11 +214,11 @@ describe("httpRequestPlus", () => {
     const error = await new Promise((resolve) => {
       res.on("error", resolve);
     });
-    expect(error).toBeInstanceOf(Error);
-    expect(error.canceled).toBe(false);
-    expect(error.message).toBe("HTTP connection has timed out");
-    expect(error.method).toBe("GET");
-    expect(error.timeout).toBe(true);
-    expect(error.url).toBe(`http://localhost:${port}/`);
+    assert(error instanceof Error);
+    assert.strictEqual(error.canceled, false);
+    assert.strictEqual(error.message, "HTTP connection has timed out");
+    assert.strictEqual(error.method, "GET");
+    assert.strictEqual(error.timeout, true);
+    assert.strictEqual(error.url, `http://localhost:${port}/`);
   });
 });

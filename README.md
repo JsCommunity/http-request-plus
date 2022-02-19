@@ -59,6 +59,8 @@ import httpRequestPlus from "http-request-plus";
           request.setTimeout(10 * 1e3);
           request.on("timeout", request.abort);
         },
+
+        // all other options are forwarded to native {http,https}.request()
       }).readAll("utf8")
     );
   } catch (error) {

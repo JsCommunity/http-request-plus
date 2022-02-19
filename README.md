@@ -10,7 +10,7 @@ Features:
 - promise oriented
 - stream oriented
 - cancelable via cancel token or `response.cancel()`
-- request `body` can be either a buffer/string or a stream
+- request body can be either a buffer/string or a stream
 - content length header automatically set if available
 - support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects
@@ -40,6 +40,9 @@ import httpRequestPlus from "http-request-plus";
   try {
     console.log(
       await httpRequestPlus("http://example.org", {
+        // A request body can provided, either as a buffer/string or a stream
+        body: "foo bar",
+
         // By default, http-request-plus throws if the reponse's status Code is not 2xx
         //
         // This option can be used to bypass this

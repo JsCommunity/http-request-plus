@@ -1,337 +1,223 @@
-const cancelable = require("promise-toolbox/cancelable");
-const CancelToken = require("promise-toolbox/CancelToken");
-const isRedirect = require("is-redirect");
-const { request: httpRequest } = require("http");
-const { request: httpsRequest } = require("https");
-const { stringify: formatQueryString } = require("querystring");
+"use strict";
 
-// eslint-disable-next-line n/no-unsupported-features/node-builtins
-const pump = require("stream").pipeline || require("pump");
+const { createLogger } = require("@xen-orchestra/log");
+const { pipeline } = require("node:stream");
+const assert = require("node:assert/strict");
+const http = require("node:http");
+const https = require("node:https");
 
-// eslint-disable-next-line n/no-deprecated-api
-const { format: formatUrl, parse: parseUrl } = require("url");
+const readStream = require("./_readStream.js");
 
-// -------------------------------------------------------------------
+const stack = [
+  function doRequest({ body, ...opts }) {
+    const { debug, url } = this;
 
-const { push } = Array.prototype;
+    const hasBody = body !== undefined;
+    let bodyIsStream = false;
+    if (hasBody) {
+      bodyIsStream = typeof body.pipe === "function";
 
-function extend(opts) {
-  const fn = this;
-  const httpRequestPlus = function () {
-    const args = [opts];
-    push.apply(args, arguments);
-    const token = args[1];
-    if (CancelToken.is(token)) {
-      args[0] = token;
-      args[1] = opts;
-    }
-    return fn.apply(this, args);
-  };
-  addHelpers(httpRequestPlus);
-  return httpRequestPlus;
-}
-
-const METHODS = "delete head patch post put".split(" ");
-const METHODS_LEN = METHODS.length;
-
-// add `extend()` and helpers for HTTP methods (except GET because
-// it's the default)
-const addHelpers = (fn) => {
-  for (let i = 0; i < METHODS_LEN; ++i) {
-    const method = METHODS[i];
-    fn[method] = (...args) => fn(...args, { method });
-  }
-  fn.extend = extend;
-};
-
-// URL parts accepted by http.request:
-const URL_SAFE_KEYS = "auth hostname path port protocol".split(" ");
-
-// URL parts preferred in http-request-plus options
-const URL_PREFERRED_KEYS = "auth hostname pathname port protocol query".split(
-  " "
-);
-
-const pickDefined = (target, source, keys) => {
-  for (let i = 0, n = keys.length; i < n; ++i) {
-    const key = keys[i];
-    const value = source[key];
-    if (value != null) {
-      target[key] = value;
-    }
-  }
-
-  return target;
-};
-
-const makeSymbol =
-  typeof Symbol !== "undefined"
-    ? Symbol
-    : (desc) => "@@http-request-plus/" + desc;
-
-const $$canceled = makeSymbol("canceled");
-const $$timeout = makeSymbol("timeout");
-
-function emitAbortedError() {
-  // https://github.com/nodejs/node/issues/18756
-  if (!this.complete) {
-    const { req } = this;
-
-    const canceled = Boolean(req[$$canceled]);
-    const timeout = Boolean(req[$$timeout]);
-
-    const error = new Error(
-      canceled
-        ? "HTTP request has been canceled"
-        : timeout
-        ? "HTTP connection has timed out"
-        : "HTTP connection abruptly closed"
-    );
-    error.canceled = canceled;
-    error.method = req.method;
-    error.url = this.url;
-    error.timeout = timeout;
-    this.emit("error", error);
-  }
-}
-
-const isString = (value) => typeof value === "string";
-
-function readAllStreamHelper(encoding, resolve, reject) {
-  const chunks = [];
-  let length = 0;
-  const clean = () => {
-    this.removeListener("data", onData);
-    this.removeListener("end", onEnd);
-    this.removeListener("error", onError);
-  };
-
-  const onData = (chunk) => {
-    chunks.push(chunk);
-    length += chunk.length;
-  };
-  const onEnd = () => {
-    clean();
-    if (encoding === "array") {
-      return resolve(chunks);
+      const { headers } = opts;
+      if (headers["content-length"] === undefined) {
+        const length = bodyIsStream
+          ? body.headers?.["content-length"] ?? body.length
+          : Buffer.byteLength(body);
+        if (length !== undefined) {
+          opts.headers["content-length"] = length;
+        }
+      }
     }
 
-    const result = Buffer.concat(chunks, length);
-    resolve(
-      encoding !== undefined && encoding !== "buffer"
-        ? result.toString(encoding)
-        : result
-    );
-  };
-  const onError = (error) => {
-    clean();
-    reject(error);
-  };
+    const isSecure = url.protocol === "https:";
+    if (!isSecure) {
+      assert.equal(url.protocol, "http:");
+    }
 
-  this.on("data", onData);
-  this.on("end", onEnd);
-  this.on("error", onError);
-}
+    debug("sending request", { url: url.href, hasBody, bodyIsStream, opts });
 
-function readAllStream(encoding) {
-  return new Promise(readAllStreamHelper.bind(this, encoding));
-}
+    const req = (isSecure ? https.request : http.request)(url, opts);
 
-// -------------------------------------------------------------------
+    return new Promise((resolve, reject) => {
+      let _sendError = reject;
+      const sendError = (error) => {
+        _sendError(error);
+      };
 
-function abort() {
-  this[$$canceled] = true;
-  this.abort();
-}
+      req
+        .on("error", sendError)
+        .on("timeout", () => {
+          req.destroy(new Error("HTTP connection has timed out"));
+        })
+        .on("response", (response) => {
+          const { headers, statusCode, statusMessage } = response;
+          debug("response received", { headers, statusCode, statusMessage });
 
-function timeoutReq() {
-  this[$$timeout] = true;
-  this.abort();
-}
-
-// helper to abort a response
-function abortResponse() {
-  this.removeListener("aborted", emitAbortedError);
-  this.resume();
-  this.req.abort();
-}
-
-let doRequest = (cancelToken, url, { body, onRequest, ...opts }) => {
-  pickDefined(opts, url, URL_SAFE_KEYS);
-
-  const req = (
-    url.protocol.toLowerCase().startsWith("https") ? httpsRequest : httpRequest
-  )(opts);
-
-  const abortReq = abort.bind(req);
-  cancelToken.promise.then(abortReq);
-  req.once("timeout", timeoutReq);
-
-  if (onRequest !== undefined) {
-    onRequest(req);
-  }
-
-  return new Promise((resolve, reject) => {
-    // no problem if called multiple times
-    const onError = (error) => {
-      error.url = formatUrl(url);
-      reject(error);
-    };
-
-    if (body !== undefined) {
-      if (typeof body.pipe === "function") {
-        pump(body, req, (error) => {
-          if (error != null) {
-            onError(error);
-          }
+          _sendError = (error) => response.destroy(error);
+          resolve(response);
         });
+
+      // if `Expect: 100-continue`, wait before sending the body
+      const sendBody = bodyIsStream
+        ? () => {
+            // avoid duplicate error handling on req
+            req.off("error", sendError);
+
+            pipeline(body, req, (error) => {
+              if (error != null) {
+                sendError(error);
+              }
+            });
+          }
+        : () => req.end(body);
+      if (opts.headers.expect === "100-continue") {
+        req.on("continue", sendBody);
       } else {
-        req.end(body);
+        sendBody();
       }
-    } else {
-      req.end();
-    }
-
-    cancelToken.promise.then(reject);
-    req.once("error", onError);
-    req.once("response", (response) => {
-      response.cancel = abortResponse;
-
-      response.url = formatUrl(url);
-
-      response.readAll = readAllStream;
-
-      const length = response.headers["content-length"];
-      if (length !== undefined) {
-        response.length = +length;
-      }
-
-      response.once("aborted", emitAbortedError);
-
-      resolve(response);
     });
-  });
+  },
+  async function handleRedirects({ maxRedirects = 5, ...opts }, next) {
+    const { debug } = this;
+
+    while (true) {
+      const response = await next(opts);
+
+      const { statusCode } = response;
+      if (maxRedirects > 0 && ((statusCode / 100) | 0) === 3) {
+        --maxRedirects;
+
+        const { location } = response.headers;
+        if (location !== undefined) {
+          debug("redirection", { location });
+
+          response.req.destroy();
+          this.url = new URL(location, this.url);
+
+          // Only 307 and 308 guarantee method preservation, others
+          if (!(statusCode === 307 || statusCode === 308)) {
+            if (opts.method !== "GET") {
+              debug("changing method to GET");
+              opts.method = "GET";
+            }
+            const { body } = opts;
+            if (body !== undefined) {
+              debug("removing body");
+
+              const { headers } = opts;
+              if (headers["content-length"]) {
+                delete headers["content-length"];
+              }
+
+              if (typeof body.destroy === "function") {
+                body.destroy();
+              }
+              delete opts.body;
+            }
+          }
+
+          continue;
+        }
+      }
+
+      return response;
+    }
+  },
+  async function assertSuccess({ bypassStatusCheck = false, ...opts }, next) {
+    const response = await next(opts);
+
+    if (bypassStatusCheck) {
+      this.debug("bypassing status check");
+      return response;
+    }
+
+    const { statusCode } = response;
+    if (((statusCode / 100) | 0) === 2) {
+      return response;
+    }
+
+    const error = new Error(`${response.statusCode} ${response.statusMessage}`);
+    Object.defineProperty(error, "response", { value: response });
+    throw error;
+  },
+];
+function runStack(i, ...args) {
+  assert(i >= 0);
+  assert(i < stack.length);
+
+  return stack[i].call(this, ...args, (...args) =>
+    runStack.call(this, i - 1, ...args)
+  );
+}
+
+function buffer() {
+  return new Promise(readStream.bind(this));
+}
+
+function json() {
+  return new Promise(readStream.bind(this)).then(JSON.parse);
+}
+
+function text() {
+  return new Promise(readStream.bind(this)).then(String);
+}
+
+module.exports = async function httpRequestPlus(url, opts) {
+  url = url instanceof URL ? url : new URL(url);
+
+  const { debug } = createLogger(
+    "http-request-plus:" +
+      url.hostname +
+      url.pathname +
+      ":" +
+      Math.random().toString(36).slice(2, 6)
+  );
+
+  const ctx = { debug, url };
+
+  opts = {
+    __proto__: null,
+
+    ...opts,
+  };
+
+  const { headers, method } = opts;
+
+  // normalize headers: clone (to avoid mutate user object) and lowercase
+  const normalizedHeaders = { __proto__: null };
+  if (headers !== undefined) {
+    for (const key of Object.keys(headers)) {
+      const lcKey = key.toLowerCase();
+
+      assert.equal(
+        normalizedHeaders[lcKey],
+        undefined,
+        "duplicate header " + key
+      );
+      normalizedHeaders[lcKey] = headers[key];
+    }
+  }
+  opts.headers = normalizedHeaders;
+
+  // normalize method: default value and upper case
+  opts.method = method === undefined ? "GET" : method.toUpperCase();
+
+  try {
+    const response = await runStack.call(ctx, stack.length - 1, opts);
+
+    response.buffer = buffer;
+
+    // augment response with classic helpers (similar to standard fetch())
+    response.json = json;
+    response.text = text;
+
+    return response;
+  } catch (error) {
+    // augment error with useful info
+    error.originalUrl = url.href;
+    error.url = ctx.url.href;
+
+    debug(error);
+
+    throw error;
+  }
 };
-
-// handles redirects
-doRequest = ((doRequest) => (cancelToken, url, opts) => {
-  const request = doRequest(cancelToken, url, opts);
-
-  const { body } = opts;
-  if (body != null && typeof body.pipe === "function") {
-    // no redirect if body is a stream
-    return request;
-  }
-
-  let { maxRedirects = 5 } = opts;
-  if (maxRedirects === 0) {
-    return request;
-  }
-
-  const onResponse = (response) => {
-    const { statusCode } = response;
-    if (isRedirect(statusCode) && maxRedirects-- > 0) {
-      const { location } = response.headers;
-      if (location !== undefined) {
-        // abort current request
-        response.cancel();
-
-        return loop(doRequest(cancelToken, url.resolveObject(location), opts));
-      }
-    }
-
-    return response;
-  };
-  const loop = (request) => request.then(onResponse);
-
-  return loop(request);
-})(doRequest);
-
-// throws if status code is not 2xx
-doRequest = ((doRequest) => {
-  const onResponse = (response) => {
-    const { statusCode } = response;
-    if (((statusCode / 100) | 0) !== 2) {
-      const error = new Error(response.statusMessage);
-      error.code = statusCode;
-      error.url = response.url;
-      Object.defineProperty(error, "response", {
-        configurable: true,
-        value: response,
-        writable: true,
-      });
-
-      throw error;
-    }
-
-    return response;
-  };
-
-  return (cancelToken, url, { bypassStatusCheck = false, ...opts }) => {
-    const promise = doRequest(cancelToken, url, opts);
-    return bypassStatusCheck ? promise : promise.then(onResponse);
-  };
-})(doRequest);
-
-const httpRequestPlus = cancelable(function (cancelToken) {
-  const opts = {
-    hostname: "localhost",
-    pathname: "/",
-    protocol: "http:",
-  };
-  for (let i = 1, length = arguments.length; i < length; ++i) {
-    const arg = arguments[i];
-    if (arg != null) {
-      if (isString(arg)) {
-        pickDefined(opts, parseUrl(arg), URL_PREFERRED_KEYS);
-      } else if (isString(arg.href)) {
-        // consider it as a WHATWG URL object
-        //
-        // this object must be handled differently because its properties are
-        // non-enumerable
-        pickDefined(opts, arg, URL_PREFERRED_KEYS);
-      } else {
-        Object.assign(opts, arg);
-      }
-    }
-  }
-
-  const { body } = opts;
-  if (body !== undefined) {
-    const headers = (opts.headers = { ...opts.headers });
-    if (headers["content-length"] == null) {
-      let tmp;
-      if (isString(body)) {
-        headers["content-length"] = Buffer.byteLength(body);
-      } else if (
-        ((tmp = body.headers) != null &&
-          (tmp = tmp["content-length"]) != null) ||
-        (tmp = body.length) != null
-      ) {
-        headers["content-length"] = tmp;
-      }
-    }
-  }
-
-  if (opts.path === undefined) {
-    let path = opts.pathname;
-    const { query } = opts;
-    if (query !== undefined) {
-      path += `?${isString(query) ? query : formatQueryString(query)}`;
-    }
-    opts.path = path;
-  }
-  delete opts.pathname;
-  delete opts.query;
-
-  // http.request only supports path and url.format only pathname
-  const url = parseUrl(formatUrl(opts) + opts.path);
-
-  const pResponse = doRequest(cancelToken, url, opts);
-  pResponse.readAll = (encoding) =>
-    pResponse.then((response) => response.readAll(encoding));
-
-  return pResponse;
-});
-addHelpers(httpRequestPlus);
-module.exports = httpRequestPlus;

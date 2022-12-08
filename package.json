@@ -2,11 +2,17 @@
   "name": "http-request-plus",
   "version": "0.14.0",
   "license": "ISC",
-  "description": "Small wrapper around {http,https}.request()",
+  "description": "Small package that provides a promise-based, stream-oriented wrapper around the http and https modules",
   "keywords": [
+    "client",
+    "fetch",
     "http",
     "https",
-    "request"
+    "json",
+    "promise",
+    "request",
+    "stream",
+    "wrapper"
   ],
   "homepage": "https://github.com/JsCommunity/http-request-plus",
   "bugs": "https://github.com/JsCommunity/http-request-plus/issues",
@@ -18,33 +24,25 @@
     "name": "Julien Fontanet",
     "email": "julien.fontanet@isonoe.net"
   },
-  "preferGlobal": false,
-  "bin": {},
   "engines": {
-    "node": ">=8.3"
-  },
-  "dependencies": {
-    "is-redirect": "^1.0.0",
-    "promise-toolbox": "^0.21.0",
-    "pump": "^3.0.0"
+    "node": ">=14.18"
   },
   "devDependencies": {
-    "eslint": "^8.29.0",
-    "eslint-config-prettier": "^8.3.0",
+    "eslint": "^8.33.0",
+    "eslint-config-prettier": "^8.6.0",
     "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.23.3",
-    "eslint-plugin-n": "^15.6.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.6.1",
     "eslint-plugin-promise": "^6.1.1",
     "husky": "^8.0.0",
     "lint-staged": "^13.1.0",
-    "prettier": "^2.3.0",
-    "tap": "^16.3.2"
+    "prettier": "^2.8.3",
+    "test": "^3.2.1"
   },
   "scripts": {
-    "_test": "tap --lines 87.35 --functions 87.5 --branches 69.86 --statements 88.04",
-    "dev-test": "npm run _test -- --watch; true",
+    "postversion": "npm publish",
     "prepare": "husky install",
-    "test": "npm run _test; true"
+    "test": "node--test && true"
   },
   "lint-staged": {
     "*": [
@@ -52,5 +50,8 @@
       "prettier --ignore-unknown --write"
     ],
     "*.{{,c,m}j,t}s{,x}": "eslint --ignore-pattern '!*'"
+  },
+  "dependencies": {
+    "@xen-orchestra/log": "^0.6.0"
   }
 }

@@ -1,3 +1,5 @@
+"use strict";
+
 module.exports = {
   extends: [
     // standard configuration
@@ -11,7 +13,9 @@ module.exports = {
   ],
 
   parserOptions: {
-    sourceType: "script", // or "module" if using ES modules
+    ecmaVersion: 11,
+
+    sourceType: "script", // or "script" if not using ES modules
   },
 
   reportUnusedDisableDirectives: true,
@@ -19,5 +23,7 @@ module.exports = {
   rules: {
     // uncomment if you are using a builder like Babel
     // "n/no-unsupported-features/es-syntax": "off",
+
+    strict: "error",
   },
 };

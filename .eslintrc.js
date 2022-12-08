@@ -3,8 +3,8 @@ module.exports = {
     // standard configuration
     "standard",
 
-    // https://github.com/mysticatea/eslint-plugin-node#-rules
-    "plugin:node/recommended",
+    // https://github.com/mysticatea/eslint-plugin-n#-rules
+    "plugin:n/recommended",
 
     // disable rules handled by prettier
     "prettier",
@@ -14,8 +14,10 @@ module.exports = {
     sourceType: "script", // or "module" if using ES modules
   },
 
+  reportUnusedDisableDirectives: true,
+
   rules: {
     // uncomment if you are using a builder like Babel
-    // "node/no-unsupported-features/es-syntax": "off",
+    // "n/no-unsupported-features/es-syntax": "off",
   },
 };

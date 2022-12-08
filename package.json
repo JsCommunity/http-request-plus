@@ -25,38 +25,32 @@
   },
   "dependencies": {
     "is-redirect": "^1.0.0",
-    "promise-toolbox": "^0.19.2",
+    "promise-toolbox": "^0.21.0",
     "pump": "^3.0.0"
   },
   "devDependencies": {
-    "eslint": "^7.27.0",
+    "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-config-standard": "^16.0.2",
+    "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.23.3",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "husky": "^4.3.8",
-    "lint-staged": "^11.0.0",
+    "eslint-plugin-n": "^15.6.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.1.0",
     "prettier": "^2.3.0",
-    "tap": "^15.1.6"
+    "tap": "^16.3.2"
   },
   "scripts": {
-    "dev-test": "tap --no-check-coverage --watch",
-    "test": "tap --no-check-coverage"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged && npm run test"
-    }
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testRegex": "\\.spec\\.js$"
+    "_test": "tap --lines 87.35 --functions 87.5 --branches 69.86 --statements 88.04",
+    "dev-test": "npm run _test -- --watch; true",
+    "prepare": "husky install",
+    "test": "npm run _test; true"
   },
   "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "eslint --ignore-pattern '!*'"
-    ]
+    "*": [
+      "npm test",
+      "prettier --ignore-unknown --write"
+    ],
+    "*.{{,c,m}j,t}s{,x}": "eslint --ignore-pattern '!*'"
   }
 }

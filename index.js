@@ -11,6 +11,9 @@ const pump = require("stream").pipeline || require("pump");
 // eslint-disable-next-line n/no-deprecated-api
 const { format: formatUrl, parse: parseUrl } = require("url");
 
+const { debug } =
+  require("@xen-orchestra/log").createLogger("http-request-plus");
+
 // -------------------------------------------------------------------
 
 const { push } = Array.prototype;
@@ -326,6 +329,9 @@ const httpRequestPlus = cancelable(function (cancelToken) {
 
   // http.request only supports path and url.format only pathname
   const url = parseUrl(formatUrl(opts) + opts.path);
+
+  // unique request id used for debug
+  opts.id = Math.random().toString(36).slice(2);
 
   const pResponse = doRequest(cancelToken, url, opts);
   pResponse.readAll = (encoding) =>

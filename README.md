@@ -9,13 +9,10 @@ Features:
 - HTTP & HTTPs
 - promise oriented
 - stream oriented
-- cancelable via cancel token or `response.cancel()`
 - request body can be either a buffer/string or a stream
 - content length header automatically set if available
-- support `pathname` & `query` (string or object) if no `path` provided
 - handle redirects
-- response emits `error` on abort and timeout
-- [`URL`](https://nodejs.org/dist/latest/docs/api/url.html) objects can be used as params
+- response emits `error` on timeout
 
 ## Install
 
@@ -36,105 +33,39 @@ ES2015 - ES2016:
 ```js
 import httpRequestPlus from "http-request-plus";
 
-(async () => {
-  try {
-    console.log(
-      await httpRequestPlus("http://example.org", {
-        // A request body can provided, either as a buffer/string or a stream
-        body: "foo bar",
+async function main() {
+  // this is a standard Node's IncomingMessage augmented with the following method:
+  //
+  // - buffer(): returns a promise to the content of the response in a Buffer
+  // - json(): returns a promise to the content of the response parsed as JSON
+  // - text(): returns a promise to the content of the response parsed as a UTF-8 string
+  const response = await httpRequestPlus("http://example.org", {
+    // A request body can provided, either as a buffer/string or a stream
+    body: "foo bar",
 
-        // By default, http-request-plus throws if the reponse's status Code is not 2xx
-        //
-        // This option can be used to bypass this
-        bypassStatusCheck: true,
+    // By default, http-request-plus throws if the reponse's status Code is not 2xx
+    //
+    // This option can be used to bypass this
+    bypassStatusCheck: true,
 
-        // Maximum number of redirects that should be handled by http-request-plus
-        //
-        // Defaults to 5
-        maxRedirects: 0,
+    // Maximum number of redirects that should be handled by http-request-plus
+    //
+    // Defaults to 5
+    maxRedirects: 0,
 
-        onRequest(request) {
-          // this function will be called multiple times in case of redirections
-
-          request.setTimeout(10 * 1e3);
-          request.on("timeout", request.abort);
-        },
-
-        // all other options are forwarded to native {http,https}.request()
-      }).readAll("utf8")
-    );
-  } catch (error) {
-    console.error("An error as occured", error);
-  }
-})();
-```
-
-ES5:
-
-```js
-var httpRequestPlus = require("http-request-plus");
-
-httpRequestPlus("http://example.org")
-  .readAll("utf8")
-  .then((body) => {
-    console.log(body);
-  })
-  .catch((error) => {
-    console.error("An error as occured", error);
+    // all other options are forwarded to native {http,https}.request()
+    //
+    // including `timeout` and `signal` which will properly trigger errors
   });
-```
 
-### HTTP method helpers
+  // any error occuring after the response has been received, including abortion,
+  // timeout, or body error (if body is a stream) will be emitted as an `error`
+  // event on the response object
 
-```js
-httpRequestPlus.delete();
-httpRequestPlus.head();
-httpRequestPlus.patch();
-httpRequestPlus.post();
-httpRequestPlus.put();
-```
+  console.log(await response.text());
+}
 
-### `httpRequestPlus.extend(opts)`
-
-```js
-const githubRequest = httpRequestPlus.extend("https://github.com");
-
-githubRequest.post("/api");
-```
-
-### `httpRequestPlus(options...)` → `Promise<response>`
-
-### `Promise<response>.cancel()`
-
-### `Promise<response>.readAll()` → `Promise<buffer>`
-
-### `response.cancel()`
-
-### `response.readAll()` → `Promise<buffer>`
-
-### `response.length`
-
-### `error.code`
-
-### `error.response`
-
-## Development
-
-```
-# Install dependencies
-> npm install
-
-# Run the tests
-> npm test
-
-# Continuously compile
-> npm run dev
-
-# Continuously run the tests
-> npm run dev-test
-
-# Build for production (automatically called by npm install)
-> npm run build
+main().catch((error) => console.error("FATAL:", error));
 ```
 
 ## Contributions

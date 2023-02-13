@@ -19,7 +19,7 @@
     "email": "julien.fontanet@isonoe.net"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=14.18"
   },
   "devDependencies": {
     "eslint": "^8.33.0",
@@ -34,7 +34,7 @@
     "test": "^3.2.1"
   },
   "scripts": {
-    "_test": "tap --lines 87.35 --functions 87.5 --branches 69.86 --statements 88.04",
+    "_test": "test",
     "dev-test": "npm run _test -- --watch; true",
     "prepare": "husky install",
     "test": "npm run _test; true"
@@ -45,5 +45,8 @@
       "prettier --ignore-unknown --write"
     ],
     "*.{{,c,m}j,t}s{,x}": "eslint --ignore-pattern '!*'"
+  },
+  "dependencies": {
+    "@xen-orchestra/log": "^0.6.0"
   }
 }

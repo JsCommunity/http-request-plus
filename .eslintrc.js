@@ -13,6 +13,8 @@ module.exports = {
   ],
 
   parserOptions: {
+    ecmaVersion: 11,
+
     sourceType: "script", // or "script" if not using ES modules
   },
 

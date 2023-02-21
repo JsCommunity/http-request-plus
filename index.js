@@ -104,7 +104,7 @@ const stack = [
               debug("removing body");
 
               const { headers } = opts;
-              if (headers?.["content-length"]) {
+              if (headers["content-length"]) {
                 delete headers["content-length"];
               }
 

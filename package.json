@@ -1,6 +1,6 @@
 {
   "name": "http-request-plus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "ISC",
   "description": "Small package that provides a promise-based, stream-oriented wrapper around the http and https modules",
   "keywords": [

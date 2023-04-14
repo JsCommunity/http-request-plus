@@ -46,7 +46,9 @@ const stack = [
       req
         .on("error", sendError)
         .on("timeout", () => {
-          req.destroy(new Error("HTTP connection has timed out"));
+          const error = new Error("HTTP connection has timed out");
+          error.url = url.href;
+          req.destroy(error);
         })
         .on("response", (response) => {
           const { headers, statusCode, statusMessage } = response;

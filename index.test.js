@@ -316,6 +316,7 @@ describe("httpRequestPlus", function () {
 
       const error = await rejectionOf(req({ timeout: 10 }));
       assert.equal(error.message, "HTTP connection has timed out");
+      assert.equal(error.url, httpUrl + "/");
     });
   });
 

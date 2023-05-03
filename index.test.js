@@ -254,7 +254,7 @@ describe("httpRequestPlus", function () {
 
   describe("maxRedirects options", function () {
     // create n endpoints, named from /<n> to /1 which redirects from /<n - 1> to /
-    function setUpRedirects(n, code = 302) {
+    function setUpRedirects(n, code) {
       return Array.from({ length: n }, (_, i) =>
         onReq("/" + (i + 1), (req, res) => {
           res.statusCode = code;
@@ -265,7 +265,7 @@ describe("httpRequestPlus", function () {
     }
 
     it("follows redirects", async function () {
-      setUpRedirects(1);
+      setUpRedirects(1, 302);
       onReq((req, res) => res.end("Ok"));
 
       const response = await req("/1");
@@ -273,7 +273,7 @@ describe("httpRequestPlus", function () {
     });
 
     it("changes method to GET and removes body", async function () {
-      setUpRedirects(1);
+      setUpRedirects(1, 303);
 
       await Promise.all([
         onReq(async (req, res) => {
@@ -287,23 +287,31 @@ describe("httpRequestPlus", function () {
       ]);
     });
 
-    it("does not change method and remove body if code is 307", async function () {
-      setUpRedirects(1, 307);
+    for (const code of [302, 307, 308]) {
+      it(
+        "does not change method and remove body if code is " + code,
+        async function () {
+          setUpRedirects(1, code);
 
-      await Promise.all([
-        onReq(async (req, res) => {
-          res.end();
+          await Promise.all([
+            onReq(async (req, res) => {
+              res.end();
 
-          assert.equal(req.method, "POST");
-          assert.equal(+req.headers["content-length"], 3);
-          assert.equal(String(await new Promise(readStream.bind(req))), "foo");
-        }),
-        req("/1", { body: "foo", method: "POST" }),
-      ]);
-    });
+              assert.equal(req.method, "POST");
+              assert.equal(+req.headers["content-length"], 3);
+              assert.equal(
+                String(await new Promise(readStream.bind(req))),
+                "foo"
+              );
+            }),
+            req("/1", { body: "foo", method: "POST" }),
+          ]);
+        }
+      );
+    }
 
     it("can be set to 0 to disable redirects handling", async function () {
-      setUpRedirects(1);
+      setUpRedirects(1, 302);
 
       const error = await rejectionOf(req("/1", { maxRedirects: 0 }));
       assert.equal(error.message, "302 Found");

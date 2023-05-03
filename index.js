@@ -95,8 +95,12 @@ const stack = [
           response.req.destroy();
           this.url = new URL(location, this.url);
 
-          // Only 307 and 308 guarantee method preservation, others
-          if (!(statusCode === 307 || statusCode === 308)) {
+          // This implementation does not change method/body if 302
+          //
+          // 307 and 308 requires that method/body stay unchanged
+          if (
+            !(statusCode === 302 || statusCode === 307 || statusCode === 308)
+          ) {
             if (opts.method !== "GET") {
               debug("changing method to GET");
               opts.method = "GET";

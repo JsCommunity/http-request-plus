@@ -8,6 +8,18 @@ const https = require("node:https");
 
 const readStream = require("./_readStream.js");
 
+function buffer() {
+  return new Promise(readStream.bind(this));
+}
+
+function json() {
+  return new Promise(readStream.bind(this)).then(JSON.parse);
+}
+
+function text() {
+  return new Promise(readStream.bind(this)).then(String);
+}
+
 const stack = [
   function doRequest({ body, ...opts }) {
     const { debug, url } = this;
@@ -53,6 +65,12 @@ const stack = [
         .on("response", (response) => {
           const { headers, statusCode, statusMessage } = response;
           debug("response received", { headers, statusCode, statusMessage });
+
+          response.buffer = buffer;
+
+          // augment response with classic helpers (similar to standard fetch())
+          response.json = json;
+          response.text = text;
 
           _sendError = (error) => response.destroy(error);
           resolve(response);
@@ -155,18 +173,6 @@ function runStack(i, ...args) {
   );
 }
 
-function buffer() {
-  return new Promise(readStream.bind(this));
-}
-
-function json() {
-  return new Promise(readStream.bind(this)).then(JSON.parse);
-}
-
-function text() {
-  return new Promise(readStream.bind(this)).then(String);
-}
-
 module.exports = async function httpRequestPlus(url, opts) {
   url = url instanceof URL ? url : new URL(url);
 
@@ -209,12 +215,6 @@ module.exports = async function httpRequestPlus(url, opts) {
 
   try {
     const response = await runStack.call(ctx, stack.length - 1, opts);
-
-    response.buffer = buffer;
-
-    // augment response with classic helpers (similar to standard fetch())
-    response.json = json;
-    response.text = text;
 
     return response;
   } catch (error) {

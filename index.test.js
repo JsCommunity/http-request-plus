@@ -84,12 +84,19 @@ describe("httpRequestPlus", function () {
     return fromEventMethod(httpServer, "close");
   });
 
+  function testResponseHelpers(response) {
+    assert.equal(typeof response.buffer, "function");
+    assert.equal(typeof response.json, "function");
+    assert.equal(typeof response.text, "function");
+  }
+
   describe("on connection error", function () {
     it("rejects if error before response", async function () {
       onReq((req) => req.destroy());
 
       const error = await rejectionOf(req());
       assert.equal(error.code, "ECONNRESET");
+      assert.equal(error.response, undefined);
     });
 
     it("emits error event on response if error after response", async function () {
@@ -113,6 +120,7 @@ describe("httpRequestPlus", function () {
 
       const error = await rejectionOf(req({ signal: controller.signal }));
       assert.equal(error.code, "ABORT_ERR");
+      assert.equal(error.response, undefined);
     });
 
     it("emits error event on response if error after response", async function () {
@@ -238,6 +246,7 @@ describe("httpRequestPlus", function () {
     const error = await rejectionOf(req());
     assert.equal(error.message, "404 Not Found");
     assert.equal(error.response.statusCode, 404);
+    testResponseHelpers(error.response);
   });
 
   describe("bypassStatusCheck option", function () {
@@ -315,6 +324,8 @@ describe("httpRequestPlus", function () {
 
       const error = await rejectionOf(req("/1", { maxRedirects: 0 }));
       assert.equal(error.message, "302 Found");
+      assert.equal(error.response.statusCode, 302);
+      testResponseHelpers(error.response);
     });
   });
 

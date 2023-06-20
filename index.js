@@ -221,6 +221,11 @@ module.exports = async function httpRequestPlus(url, opts) {
     // augment error with useful info
     error.originalUrl = url.href;
     error.url = ctx.url.href;
+    if (error.response !== undefined) {
+      error.response.buffer = buffer;
+      error.response.json = json;
+      error.response.text = text;
+    }
 
     debug(error);
 

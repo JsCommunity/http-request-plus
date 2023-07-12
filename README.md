@@ -13,6 +13,8 @@ Features:
 - content length header automatically set if available
 - handle redirects
 - response emits `error` on timeout
+- helpers to get the response content: `.buffer()`/`.text()`/`.json`
+- supports compressed response (Brotli, Deflate and gzip)
 
 ## Install
 
@@ -33,12 +35,15 @@ ES2015 - ES2016:
 ```js
 import httpRequestPlus from "http-request-plus";
 
-async function main() {
-  // this is a standard Node's IncomingMessage augmented with the following method:
+async function main()
+  // this is a standard Node's IncomingMessage augmented with the following methods:
   //
   // - buffer(): returns a promise to the content of the response in a Buffer
   // - json(): returns a promise to the content of the response parsed as JSON
   // - text(): returns a promise to the content of the response parsed as a UTF-8 string
+  // - decompress(): returns a stream to the decompressed content of the response, if
+  //     decompressed, the response itself is returned, if the encoding is unsupported,
+  //     an error is thrown
   const response = await httpRequestPlus("http://example.org", {
     // A request body can provided, either as a buffer/string or a stream
     body: "foo bar",
@@ -47,6 +52,13 @@ async function main() {
     //
     // This option can be used to bypass this
     bypassStatusCheck: true,
+
+    // If set to `true`, `headers['accept-encoding]` will default to `gzip, deflate, br`,
+    // and the `buffer()`, `json()` and `text()` helper will automatically decompress
+    // the response
+    //
+    // Defaults to false
+    decompress: true,
 
     // Maximum number of redirects that should be handled by http-request-plus
     //

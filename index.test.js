@@ -2,6 +2,7 @@
 
 const { createServer } = require("node:http");
 const { describe, it, before, after } = require("test");
+const { gzipSync } = require("node:zlib");
 const { Readable } = require("node:stream");
 const assert = require("node:assert/strict");
 
@@ -261,6 +262,41 @@ describe("httpRequestPlus", function () {
     });
   });
 
+  describe("decompress option", function () {
+    it("changes default accept-encoding", async function () {
+      await Promise.all([
+        onReq((req, res) => {
+          assert.equal(req.headers["accept-encoding"], "gzip, deflate, br");
+
+          res.end();
+        }),
+        req({ decompress: true }),
+      ]);
+    });
+
+    const value = ["foo", "bar"];
+    const text = JSON.stringify(value);
+    const encoded = gzipSync(text);
+    for (const [helper, result] of [
+      ["buffer", Buffer.from(text)],
+      ["json", value],
+      ["text", text],
+    ]) {
+      it(`makes ${helper} decompress response`, async function () {
+        onReq((req, res) => {
+          res.setHeader("content-encoding", "gzip");
+
+          res.end(encoded);
+        });
+
+        assert.deepEqual(
+          await (await req({ decompress: true }))[helper](),
+          result
+        );
+      });
+    }
+  });
+
   describe("maxRedirects options", function () {
     // create n endpoints, named from /<n> to /1 which redirects from /<n - 1> to /
     function setUpRedirects(n, code) {
@@ -346,6 +382,45 @@ describe("httpRequestPlus", function () {
       onReq((req, res) => res.end(value));
 
       assert.deepEqual(await (await req()).buffer(), Buffer.from(value));
+    });
+  });
+
+  describe(".decompress()", function () {
+    it("returns the response if not encoded", async function () {
+      onReq((req, res) => res.end());
+
+      const response = await req();
+      assert.equal(response.decompress(), response);
+    });
+
+    for (const [encoding, base64] of [
+      ["br", "CwOAZm9vIGJhcgM="],
+      ["deflate", "eJxLy89XSEosAgAKcAKa"],
+      ["gzip", "H4sIAAAAAAAAA0vLz1dISiwCADQBRr4HAAAA"],
+    ]) {
+      it("supports " + encoding, async function () {
+        onReq((req, res) => {
+          res.setHeader("content-encoding", encoding);
+          res.end(Buffer.from(base64, "base64"));
+        });
+
+        assert.deepEqual(
+          await new Promise(readStream.bind((await req()).decompress())),
+          Buffer.from("foo bar")
+        );
+      });
+    }
+
+    it("thows if encoding is not supported", async function () {
+      onReq((req, res) => {
+        res.setHeader("content-encoding", "foo");
+        res.end();
+      });
+
+      const response = await req();
+      assert.throws(() => response.decompress(), {
+        message: "unsupported encoding foo",
+      });
     });
   });
 

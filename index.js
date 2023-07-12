@@ -5,39 +5,73 @@ const { pipeline } = require("node:stream");
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const https = require("node:https");
+const zlib = require("node:zlib");
 
 const readStream = require("./_readStream.js");
 
+const $$decompress = Symbol("http-request-plus:decompress");
+
+const noop = Function.prototype;
+
+// decompress the response if the `decompress` option is enabled
+function autoDecompress(res) {
+  return res[$$decompress] ? decompress.call(res) : res;
+}
+
 function buffer() {
-  return new Promise(readStream.bind(this));
+  return new Promise(readStream.bind(autoDecompress(this)));
+}
+
+function decompress() {
+  const encoding = this.headers["content-encoding"];
+
+  if (encoding === undefined) {
+    return this;
+  }
+
+  let transform;
+  if (encoding === "br") {
+    transform = zlib.createBrotliDecompress();
+  } else if (encoding === "deflate" || encoding === "gzip") {
+    transform = zlib.createUnzip();
+  } else {
+    throw new Error("unsupported encoding " + encoding);
+  }
+
+  return pipeline(this, transform, noop);
 }
 
 function json() {
-  return new Promise(readStream.bind(this)).then(JSON.parse);
+  return new Promise(readStream.bind(autoDecompress(this))).then(JSON.parse);
 }
 
 function text() {
-  return new Promise(readStream.bind(this)).then(String);
+  return new Promise(readStream.bind(autoDecompress(this))).then(String);
 }
 
 const stack = [
-  function doRequest({ body, ...opts }) {
+  function doRequest({ body, decompress: decompressOpt = false, ...opts }) {
     const { debug, url } = this;
+
+    const { headers } = opts;
 
     const hasBody = body !== undefined;
     let bodyIsStream = false;
     if (hasBody) {
       bodyIsStream = typeof body.pipe === "function";
 
-      const { headers } = opts;
       if (headers["content-length"] === undefined) {
         const length = bodyIsStream
           ? body.headers?.["content-length"] ?? body.length
           : Buffer.byteLength(body);
         if (length !== undefined) {
-          opts.headers["content-length"] = length;
+          headers["content-length"] = length;
         }
       }
+    }
+
+    if (decompressOpt && headers["accept-encoding"] === undefined) {
+      headers["accept-encoding"] = "gzip, deflate, br";
     }
 
     const isSecure = url.protocol === "https:";
@@ -66,7 +100,10 @@ const stack = [
           const { headers, statusCode, statusMessage } = response;
           debug("response received", { headers, statusCode, statusMessage });
 
+          response[$$decompress] = decompressOpt;
+
           response.buffer = buffer;
+          response.decompress = decompress;
 
           // augment response with classic helpers (similar to standard fetch())
           response.json = json;
